@@ -151,7 +151,7 @@ Or in **Streamlit Cloud Settings > Secrets**.
 
 # --- Model Selection ---
 provider_enum = LLMProvider(selected_provider)
-model_list = AVAILABLE_MODELS.get(provider_enum, ["gemini-flash-latest"])
+model_list = AVAILABLE_MODELS.get(provider_enum, ["gemini-flash-lite-latest"])
 default_model = DEFAULT_MODELS.get(provider_enum, model_list[0])
 default_idx = model_list.index(default_model) if default_model in model_list else 0
 
@@ -159,6 +159,7 @@ selected_model = st.sidebar.selectbox(
     "Model",
     options=model_list,
     index=default_idx,
+    key=f"sb_model_select_{selected_provider}",
 )
 
 # --- Rewrite Mode ---
@@ -844,32 +845,41 @@ def generate_inline_diff_html(original: str, modified: str) -> str:
 
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
-            html_chunks.append(" ".join(orig_words[i1:i2]))
+            html_chunks.append(f'<span style="color:#212529;">{" ".join(orig_words[i1:i2])}</span>')
         elif tag == "delete":
             deleted_text = " ".join(orig_words[i1:i2])
             html_chunks.append(
-                f'<span style="color:#c62828; background-color:#ffebee; text-decoration:line-through; padding:2px 4px; border-radius:3px; font-weight:500;">{deleted_text}</span>'
+                f'<span style="color:#b31d28; background-color:#ffebe9; text-decoration:line-through; text-decoration-color:#b31d28; padding:2px 5px; margin:0 1px; border-radius:4px; font-weight:600;">{deleted_text}</span>'
             )
         elif tag == "insert":
             inserted_text = " ".join(mod_words[j1:j2])
             html_chunks.append(
-                f'<span style="color:#2e7d32; background-color:#e8f5e9; padding:2px 4px; border-radius:3px; font-weight:600;">{inserted_text}</span>'
+                f'<span style="color:#116329; background-color:#dafbe1; padding:2px 5px; margin:0 1px; border-radius:4px; font-weight:600;">{inserted_text}</span>'
             )
         elif tag == "replace":
             deleted_text = " ".join(orig_words[i1:i2])
             inserted_text = " ".join(mod_words[j1:j2])
             html_chunks.append(
-                f'<span style="color:#c62828; background-color:#ffebee; text-decoration:line-through; padding:2px 4px; border-radius:3px; font-weight:500;">{deleted_text}</span> '
-                f'<span style="color:#2e7d32; background-color:#e8f5e9; padding:2px 4px; border-radius:3px; font-weight:600;">{inserted_text}</span>'
+                f'<span style="color:#b31d28; background-color:#ffebe9; text-decoration:line-through; text-decoration-color:#b31d28; padding:2px 5px; margin:0 1px; border-radius:4px; font-weight:600;">{deleted_text}</span> '
+                f'<span style="color:#116329; background-color:#dafbe1; padding:2px 5px; margin:0 1px; border-radius:4px; font-weight:600;">{inserted_text}</span>'
             )
 
     diff_body = " ".join(html_chunks).replace("\n", "<br/>")
+
+    legend = (
+        '<div style="display:flex; flex-wrap:wrap; gap:16px; margin-bottom:12px; font-size:0.90em; font-weight:600; padding:8px 12px; background:#f6f8fa; border-radius:6px; border:1px solid #d0d7de; color:#24292f;">'
+        '<span><span style="display:inline-block; width:14px; height:14px; background:#ffebe9; border:1px solid #b31d28; border-radius:3px; margin-right:5px; vertical-align:middle;"></span> <span style="color:#b31d28; text-decoration:line-through;">Red Strikethrough</span>: Removed AI / Source Phrasing</span>'
+        '<span><span style="display:inline-block; width:14px; height:14px; background:#dafbe1; border:1px solid #116329; border-radius:3px; margin-right:5px; vertical-align:middle;"></span> <span style="color:#116329;">Green Highlight</span>: Enhanced Scholarly Replacement</span>'
+        '</div>'
+    )
+
     notice = ""
     if not has_differences:
-        notice = '<div style="background-color: #fff3e0; color: #e65100; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 0.95em; font-weight: 500; border-left: 4px solid #ff9800;">⚠️ Notice: Zero word differences detected between original and output. Verify that the LLM call succeeded and the model generated new text.</div>'
+        notice = '<div style="background-color: #fff3cd; color: #856404; padding: 12px 16px; border-radius: 6px; margin-bottom: 12px; font-size: 0.95em; font-weight: 500; border-left: 5px solid #ffeeba;">⚠️ <strong>Notice:</strong> Zero word differences detected between original and output text. Verify that your API key is valid and an enhancement mode is active.</div>'
 
     return f"""
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.8; font-size: 1.02em; padding: 18px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff; max-height: 450px; overflow-y: auto;">
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.8; font-size: 1.0em; padding: 16px; border: 1px solid #d0d7de; border-radius: 8px; background-color: #ffffff; color: #24292f; max-height: 480px; overflow-y: auto;">
+        {legend}
         {notice}
         {diff_body}
     </div>
@@ -883,6 +893,9 @@ def generate_inline_diff_html(original: str, modified: str) -> str:
 
 st.title("✍️ Writing Enhancer Pro")
 st.caption("All-in-One Scientific & Academic Writing Suite: AI Humanizer, Tone & Flow Enhancer, Deep Paraphraser & Plagiarism Reducer")
+
+if not api_key:
+    st.warning("🔑 **API Key Required:** Please enter your Google Gemini API Key in the left sidebar to enable rewriting and humanization (or configure `GEMINI_API_KEY` in Streamlit Cloud Secrets).")
 
 tab_doc, tab_text, tab_plagiarism, tab_audit, tab_help = st.tabs([
     "📄 Document Enhancer",
@@ -1139,54 +1152,19 @@ with tab_doc:
 
                         if errors > 0:
                             st.error(f"❌ {errors} chunk(s) failed to enhance due to API/provider errors and remained as original text.")
-                            with st.expander("🔍 View Error Details", expanded=True):
-                                for r in results:
-                                    if r["status"] != "success":
-                                        st.markdown(f"- **Chunk {r['chunk_id']} ({r['section_type']})**: `{r['status']}`")
 
                         # Assemble humanized texts
                         humanized_texts = [r["humanized_text"] for r in results]
                         full_humanized = "\n\n".join(humanized_texts)
 
                         # Post-scan
-                        st.markdown("#### Post-Processing AI Marker Scan")
                         post_audit = render_ai_audit(full_humanized, label="After")
 
                         # Score delta
                         delta = pre_audit["score"] - post_audit["score"]
-                        if delta > 0:
-                            st.success(f"📉 AI Score reduced by **{delta:.1f}** points ({pre_audit['score']:.1f} → {post_audit['score']:.1f})")
-                        render_detailed_audit(post_audit)
 
                         # Plagiarism & N-Gram Overlap Scan
                         ngram_res = calculate_ngram_similarity(full_text, full_humanized, n=4)
-                        st.markdown("#### 🛡️ Plagiarism & N-Gram Overlap Scan")
-                        ng_c1, ng_c2, ng_c3 = st.columns(3)
-                        ng_c1.metric("Originality Score", f"🛡️ {ngram_res['originality_score']}%")
-                        ng_c2.metric("4-Gram Overlap", f"{ngram_res['overlap_percentage']}%")
-                        ng_c3.metric("Plagiarism Risk", ngram_res["risk_level"])
-                        if ngram_res["matching_sequences"]:
-                            with st.expander(f"⚠️ Matching 4-Gram Sequences ({len(ngram_res['matching_sequences'])})", expanded=False):
-                                st.caption("These exact 4-word sequences match the source text and could be flagged by Turnitin / QuillBot:")
-                                st.write(", ".join([f"`{seq}`" for seq in ngram_res["matching_sequences"][:25]]))
-
-                        # Visual Inline Diff
-                        if results:
-                            st.markdown("---")
-                            with st.expander("🔍 Visual Inline Word Diff (Red: Removed AI / Green: Enhanced Replacement)", expanded=True):
-                                st.caption("Word-by-word visual difference for Chunk 1: red strikethrough denotes deleted robotic patterns; green denotes enhanced scholarly prose:")
-                                st.markdown(generate_inline_diff_html(results[0]["original_text"], results[0]["humanized_text"]), unsafe_allow_html=True)
-
-                        # Before / After side-by-side comparison
-                        st.markdown("#### Before / After Text Blocks (First Chunk)")
-                        if results:
-                            cmp_left, cmp_right = st.columns(2)
-                            with cmp_left:
-                                st.markdown("**Original:**")
-                                st.text_area("Original Text", value=results[0]["original_text"], height=230, key="cmp_orig", disabled=True, label_visibility="collapsed")
-                            with cmp_right:
-                                st.markdown("**Enhanced:**")
-                                st.text_area("Enhanced Text", value=results[0]["humanized_text"], height=230, key="cmp_human", disabled=True, label_visibility="collapsed")
 
                         # Prepare and cache all download formats
                         output_path = input_path.replace(".docx", "_enhanced.docx")
@@ -1230,10 +1208,12 @@ with tab_doc:
                             "delta": delta,
                             "pre_score": pre_audit['score'],
                             "post_score": post_audit['score'],
+                            "post_audit": post_audit,
                             "ngram_res": ngram_res,
-                            "first_orig": results[0]["original_text"] if results else "",
-                            "first_human": results[0]["humanized_text"] if results else "",
+                            "results": results,
+                            "errors": errors,
                         }
+                        st.rerun()
 
                     except Exception as e:
                         st.error(f"❌ Processing failed: {str(e)}")
@@ -1244,12 +1224,70 @@ with tab_doc:
                         except OSError:
                             pass
 
-        # Persistent Display of Enhanced Downloads (Never disappears upon clicking download)
+        # Persistent Display of Enhanced Results & Downloads (Never disappears upon clicking download or interaction)
         if "tab1_enhance_results" in st.session_state:
             t1_res = st.session_state["tab1_enhance_results"]
+            res_list = t1_res.get("results", [])
+
+            st.markdown("---")
+            st.markdown("### 📊 Enhancement Results")
+
+            if t1_res.get("errors", 0) > 0:
+                st.error(f"❌ {t1_res['errors']} chunk(s) failed to enhance due to API/provider errors and remained as original text.")
+                with st.expander("🔍 View Error Details", expanded=False):
+                    for r in res_list:
+                        if r["status"] != "success":
+                            st.markdown(f"- **Chunk {r['chunk_id']} ({r['section_type']})**: `{r['status']}`")
+
+            # Score delta banner
+            if t1_res.get("delta", 0) > 0:
+                st.success(f"📉 AI Score reduced by **{t1_res['delta']:.1f}** points ({t1_res['pre_score']:.1f} → {t1_res['post_score']:.1f})")
+
+            # Post-scan audit
+            st.markdown("#### Post-Processing AI Marker Scan")
+            if "post_audit" in t1_res:
+                render_detailed_audit(t1_res["post_audit"])
+
+            # Plagiarism & N-Gram Overlap Scan
+            ngram_res = t1_res.get("ngram_res", {})
+            if ngram_res:
+                st.markdown("#### 🛡️ Plagiarism & N-Gram Overlap Scan")
+                ng_c1, ng_c2, ng_c3 = st.columns(3)
+                ng_c1.metric("Originality Score", f"🛡️ {ngram_res.get('originality_score', 100)}%")
+                ng_c2.metric("4-Gram Overlap", f"{ngram_res.get('overlap_percentage', 0)}%")
+                ng_c3.metric("Plagiarism Risk", ngram_res.get("risk_level", "Low"))
+                if ngram_res.get("matching_sequences"):
+                    with st.expander(f"⚠️ Matching 4-Gram Sequences ({len(ngram_res['matching_sequences'])})", expanded=False):
+                        st.caption("These exact 4-word sequences match the source text and could be flagged by Turnitin / QuillBot:")
+                        st.write(", ".join([f"`{seq}`" for seq in ngram_res["matching_sequences"][:25]]))
+
+            # Visual Inline Diff (Persistent)
+            if res_list:
+                st.markdown("---")
+                diff_idx = 0
+                if len(res_list) > 1:
+                    chunk_labels = [f"Chunk {i+1} ({r.get('section_type', 'general').replace('_', ' ').title()}) — {r.get('word_count', 0)} words" for i, r in enumerate(res_list)]
+                    sel_chunk_label = st.selectbox("Select Chunk to Inspect Visual Inline Diff:", options=chunk_labels, key="t1_chunk_diff_sel")
+                    diff_idx = chunk_labels.index(sel_chunk_label)
+
+                with st.expander("🔍 Visual Inline Word Diff (Red: Removed AI / Green: Enhanced Replacement)", expanded=True):
+                    st.caption(f"Word-by-word visual difference for Chunk {diff_idx + 1}: red strikethrough denotes deleted robotic patterns; green denotes enhanced scholarly prose:")
+                    st.markdown(generate_inline_diff_html(res_list[diff_idx]["original_text"], res_list[diff_idx]["humanized_text"]), unsafe_allow_html=True)
+
+                # Before / After side-by-side comparison
+                st.markdown(f"#### Before / After Text Blocks (Chunk {diff_idx + 1})")
+                cmp_left, cmp_right = st.columns(2)
+                with cmp_left:
+                    st.markdown("**Original:**")
+                    st.text_area("Original Text", value=res_list[diff_idx]["original_text"], height=230, key="cmp_orig", disabled=True, label_visibility="collapsed")
+                with cmp_right:
+                    st.markdown("**Enhanced:**")
+                    st.text_area("Enhanced Text", value=res_list[diff_idx]["humanized_text"], height=230, key="cmp_human", disabled=True, label_visibility="collapsed")
+
+            # Persistent Downloads
             st.markdown("---")
             st.markdown("#### 📥 Download Enhanced Document")
-            st.caption("✅ Downloads preserved — you can download multiple formats sequentially without buttons vanishing:")
+            st.caption("✅ Downloads preserved — you can download multiple formats sequentially without losing your view:")
             dl_col1, dl_col2, dl_col3, dl_col4 = st.columns(4)
             with dl_col1:
                 st.download_button(
@@ -1311,6 +1349,8 @@ with tab_text:
 
     if "tab2_text_content" not in st.session_state:
         st.session_state["tab2_text_content"] = ""
+    if "text_input" not in st.session_state:
+        st.session_state["text_input"] = ""
     if "_last_t2_files_sig" not in st.session_state:
         st.session_state["_last_t2_files_sig"] = None
 
@@ -1335,6 +1375,7 @@ with tab_text:
             st.session_state["_last_t2_files_sig"] = current_sig
             first_key = list(loaded_texts.keys())[0]
             st.session_state["tab2_text_content"] = loaded_texts[first_key]
+            st.session_state["text_input"] = loaded_texts[first_key]
             st.rerun()
 
         c_up1, c_up2, c_up3 = st.columns([2, 1, 1])
@@ -1343,11 +1384,13 @@ with tab_text:
         with c_up2:
             if st.button("📥 Load Selected File", use_container_width=True, key="btn_load_single_t2"):
                 st.session_state["tab2_text_content"] = loaded_texts[chosen_file]
+                st.session_state["text_input"] = loaded_texts[chosen_file]
                 st.rerun()
         with c_up3:
             if st.button("📑 Merge All Files", use_container_width=True, key="btn_merge_all_t2"):
                 merged = "\n\n".join([f"# Section: {k}\n\n{v}" for k, v in loaded_texts.items()])
                 st.session_state["tab2_text_content"] = merged
+                st.session_state["text_input"] = merged
                 st.rerun()
 
         if chosen_file and chosen_file in loaded_texts:
@@ -1358,13 +1401,12 @@ with tab_text:
 
     input_text = st.text_area(
         "Paste or edit your text here:",
-        value=st.session_state.get("tab2_text_content", ""),
+        value=st.session_state.get("text_input", st.session_state.get("tab2_text_content", "")),
         height=250,
         placeholder="Paste the text you want to humanize, improve academically, or restructure...",
         key="text_input",
     )
-    if input_text != st.session_state.get("tab2_text_content", ""):
-        st.session_state["tab2_text_content"] = input_text
+    st.session_state["tab2_text_content"] = input_text
 
     # Section type selector for text mode
     text_col1, text_col2 = st.columns(2)
@@ -1498,12 +1540,15 @@ with tab_text:
 
     if st.button("🚀 Rewrite Text", type="primary", use_container_width=True, key="text_process"):
         # Auto-fallback: if text area is empty but file was uploaded, use uploaded file text
-        if not input_text.strip() and t2_files and loaded_texts:
+        current_input = st.session_state.get("text_input", "").strip() or input_text.strip()
+        if not current_input and t2_files and loaded_texts:
             active_name = chosen_file or list(loaded_texts.keys())[0]
-            input_text = loaded_texts.get(active_name, "")
-            st.session_state["tab2_text_content"] = input_text
+            current_input = loaded_texts.get(active_name, "").strip()
+            st.session_state["text_input"] = current_input
+            st.session_state["tab2_text_content"] = current_input
+            input_text = current_input
 
-        if not input_text.strip():
+        if not current_input:
             st.warning("⚠️ Please paste some text or upload a document to rewrite.")
         elif not api_key:
             st.error("⚠️ Please enter your API Key in the sidebar.")
@@ -1515,7 +1560,7 @@ with tab_text:
 
                 with st.spinner("Processing text with word count boundaries..."):
                     humanized = engine.rewrite_text(
-                        text=input_text,
+                        text=current_input,
                         section_type=section_type,
                         aggressive=aggressive_mode,
                         options=user_options,
@@ -1527,56 +1572,14 @@ with tab_text:
                         strict_mode=opt_strict_mode,
                     )
 
-                # Results
-                st.markdown("---")
-                st.markdown("#### Output AI Marker Scan")
                 text_post_audit = render_ai_audit(humanized, label="Output")
-
-                text_pre = analyze_ai_patterns(input_text)
+                text_pre = analyze_ai_patterns(current_input)
                 delta = text_pre["score"] - text_post_audit["score"]
-                if delta > 0:
-                    st.success(f"📉 AI Score reduced by **{delta:.1f}** points")
 
-                # Word Count Verification
-                in_w = len(input_text.split())
+                in_w = len(current_input.split())
                 out_w = len(humanized.split())
-                st.markdown("#### 📊 Word Count & Target Verification")
-                wc1, wc2, wc3 = st.columns(3)
-                wc1.metric("Input Words", in_w)
-                wc2.metric("Enhanced Words", out_w, delta=out_w - in_w)
-                if target_min and target_max:
-                    is_within = target_min <= out_w <= target_max
-                    wc3.metric(f"Target Window ({target_min}–{target_max})", "✅ Within Range" if is_within else "⚠️ Outside Range")
-                else:
-                    wc3.metric("Length Strategy", length_choice.split(" (")[0])
 
-                # N-gram similarity & Originality scan
-                text_ngram = calculate_ngram_similarity(input_text, humanized, n=4)
-                st.markdown("#### 🛡️ Plagiarism & N-Gram Overlap Scan")
-                ng_a, ng_b, ng_c = st.columns(3)
-                ng_a.metric("Originality Score", f"🛡️ {text_ngram['originality_score']}%")
-                ng_b.metric("4-Gram Overlap", f"{text_ngram['overlap_percentage']}%")
-                ng_c.metric("Plagiarism Risk", text_ngram["risk_level"])
-                if text_ngram["matching_sequences"]:
-                    with st.expander(f"⚠️ Matching 4-Gram Sequences ({len(text_ngram['matching_sequences'])})", expanded=False):
-                        st.caption("These exact 4-word sequences match the source text:")
-                        st.write(", ".join([f"`{seq}`" for seq in text_ngram["matching_sequences"][:25]]))
-
-                # Visual Inline Diff
-                st.markdown("---")
-                with st.expander("🔍 Visual Inline Word Diff (Red: Removed AI / Green: Enhanced Replacement)", expanded=True):
-                    st.caption("Word-by-word visual difference: red strikethrough denotes deleted robotic patterns; green denotes enhanced scholarly prose:")
-                    st.markdown(generate_inline_diff_html(input_text, humanized), unsafe_allow_html=True)
-
-                # Side-by-side
-                st.markdown("#### Before / After Text Blocks")
-                left_col, right_col = st.columns(2)
-                with left_col:
-                    st.markdown("**Original:**")
-                    st.text_area("Original Input", value=input_text, height=250, key="txt_orig", disabled=True, label_visibility="collapsed")
-                with right_col:
-                    st.markdown("**Enhanced:**")
-                    st.text_area("Enhanced Output", value=humanized, height=250, key="txt_result", disabled=True, label_visibility="collapsed")
+                text_ngram = calculate_ngram_similarity(current_input, humanized, n=4)
 
                 # Prepare and cache all download formats
                 docx_bytes_t2 = text_to_docx_bytes(
@@ -1602,9 +1605,11 @@ with tab_text:
 
                 st.session_state["tab2_results"] = {
                     "humanized": humanized,
-                    "input_text": input_text,
+                    "input_text": current_input,
                     "section_type": section_type,
                     "delta": delta,
+                    "pre_score": text_pre["score"],
+                    "post_score": text_post_audit["score"],
                     "in_w": in_w,
                     "out_w": out_w,
                     "target_min": target_min,
@@ -1616,13 +1621,62 @@ with tab_text:
                     "md_bytes": humanized.encode("utf-8"),
                     "txt_bytes": plain_text_t2.encode("utf-8"),
                 }
+                st.rerun()
 
             except Exception as e:
                 st.error(f"❌ Processing failed: {str(e)}")
 
-    # Persistent Display of Tab 2 Results & Downloads (Never disappears upon clicking download)
+    # Persistent Display of Tab 2 Results & Downloads (Never disappears upon clicking download or interaction)
     if "tab2_results" in st.session_state:
         t2_res = st.session_state["tab2_results"]
+        st.markdown("---")
+        st.markdown("### 📊 Enhancement Results")
+
+        # Score delta banner
+        if t2_res.get("delta", 0) > 0:
+            st.success(f"📉 AI Score reduced by **{t2_res['delta']:.1f}** points ({t2_res['pre_score']:.1f} → {t2_res['post_score']:.1f})")
+
+        # Word Count Verification
+        st.markdown("#### 📊 Word Count & Target Verification")
+        wc1, wc2, wc3 = st.columns(3)
+        wc1.metric("Input Words", t2_res["in_w"])
+        wc2.metric("Enhanced Words", t2_res["out_w"], delta=t2_res["out_w"] - t2_res["in_w"])
+        if t2_res.get("target_min") and t2_res.get("target_max"):
+            is_within = t2_res["target_min"] <= t2_res["out_w"] <= t2_res["target_max"]
+            wc3.metric(f"Target Window ({t2_res['target_min']}–{t2_res['target_max']})", "✅ Within Range" if is_within else "⚠️ Outside Range")
+        else:
+            wc3.metric("Length Strategy", t2_res.get("length_choice", "").split(" (")[0])
+
+        # N-gram similarity & Originality scan
+        t2_ngram = t2_res.get("text_ngram", {})
+        if t2_ngram:
+            st.markdown("#### 🛡️ Plagiarism & N-Gram Overlap Scan")
+            ng_a, ng_b, ng_c = st.columns(3)
+            ng_a.metric("Originality Score", f"🛡️ {t2_ngram.get('originality_score', 100)}%")
+            ng_b.metric("4-Gram Overlap", f"{t2_ngram.get('overlap_percentage', 0)}%")
+            ng_c.metric("Plagiarism Risk", t2_ngram.get("risk_level", "Low"))
+            if t2_ngram.get("matching_sequences"):
+                with st.expander(f"⚠️ Matching 4-Gram Sequences ({len(t2_ngram['matching_sequences'])})", expanded=False):
+                    st.caption("These exact 4-word sequences match the source text:")
+                    st.write(", ".join([f"`{seq}`" for seq in t2_ngram["matching_sequences"][:25]]))
+
+        # Visual Inline Diff (Persistent)
+        st.markdown("---")
+        with st.expander("🔍 Visual Inline Word Diff (Red: Removed AI / Green: Enhanced Replacement)", expanded=True):
+            st.caption("Word-by-word visual difference: red strikethrough denotes deleted robotic patterns; green denotes enhanced scholarly prose:")
+            st.markdown(generate_inline_diff_html(t2_res["input_text"], t2_res["humanized"]), unsafe_allow_html=True)
+
+        # Side-by-side Before / After
+        st.markdown("#### Before / After Text Blocks")
+        left_col, right_col = st.columns(2)
+        with left_col:
+            st.markdown("**Original:**")
+            st.text_area("Original Input", value=t2_res["input_text"], height=250, key="txt_orig", disabled=True, label_visibility="collapsed")
+        with right_col:
+            st.markdown("**Enhanced:**")
+            st.text_area("Enhanced Output", value=t2_res["humanized"], height=250, key="txt_result", disabled=True, label_visibility="collapsed")
+
+        # Persistent Downloads
         st.markdown("---")
         st.markdown("#### 📥 Download Enhanced Result")
         st.caption("✅ Downloads preserved — download Word, PDF, Markdown, or TXT without losing your screen state:")
@@ -1762,34 +1816,6 @@ with tab_plagiarism:
 
                     # N-gram analysis
                     sim = calculate_ngram_similarity(plag_input, paraphrased, n=4)
-                    
-                    st.markdown("---")
-                    st.markdown("#### 🛡️ Paraphrasing & Originality Results")
-                    col_m1, col_m2, col_m3 = st.columns(3)
-                    col_m1.metric("Originality Score", f"🛡️ {sim['originality_score']}%")
-                    col_m2.metric("4-Gram Overlap", f"{sim['overlap_percentage']}%")
-                    col_m3.metric("Similarity Risk", sim["risk_level"])
-
-                    if sim["matching_sequences"]:
-                        with st.expander(f"⚠️ Identical 4-Gram Sequences Found ({len(sim['matching_sequences'])})", expanded=False):
-                            st.caption("These sequences match verbatim:")
-                            st.write(", ".join([f"`{s}`" for s in sim["matching_sequences"][:25]]))
-                    else:
-                        st.success("✅ Zero 4-Gram matches detected! The text structure has been completely transformed.")
-
-                    # Side-by-side
-                    p_col1, p_col2 = st.columns(2)
-                    with p_col1:
-                        st.markdown("**Original Source:**")
-                        st.text_area("Original Source", value=plag_input, height=280, key="plag_res_orig", disabled=True, label_visibility="collapsed")
-                    with p_col2:
-                        st.markdown("**Original Paraphrased Output:**")
-                        st.text_area("Paraphrased Output", value=paraphrased, height=280, key="plag_res_out", disabled=True, label_visibility="collapsed")
-
-                    # Visual Inline Diff
-                    with st.expander("🔍 Visual Inline Word Diff (Red: Source Phrasing / Green: Unique Paraphrase)", expanded=True):
-                        st.caption("Word-by-word visual difference: red strikethrough denotes source wording; green denotes unique paraphrased structure:")
-                        st.markdown(generate_inline_diff_html(plag_input, paraphrased), unsafe_allow_html=True)
 
                     # Prepare and cache all download formats
                     docx_bytes_t3 = text_to_docx_bytes(
@@ -1822,16 +1848,50 @@ with tab_plagiarism:
                         "md_bytes": paraphrased.encode("utf-8"),
                         "txt_bytes": plain_text_t3.encode("utf-8"),
                     }
+                    st.rerun()
 
                 except Exception as e:
                     st.error(f"❌ Paraphrasing failed: {str(e)}")
 
-        # Persistent Display of Tab 3 Downloads (Never disappears upon clicking download)
+        # Persistent Display of Tab 3 Results & Downloads (Never disappears upon clicking download or interaction)
         if "tab3_results" in st.session_state:
             t3_res = st.session_state["tab3_results"]
+            sim = t3_res.get("sim", {})
+
+            st.markdown("---")
+            st.markdown("### 📊 Paraphrasing & Originality Results")
+            col_m1, col_m2, col_m3 = st.columns(3)
+            col_m1.metric("Originality Score", f"🛡️ {sim.get('originality_score', 100)}%")
+            col_m2.metric("4-Gram Overlap", f"{sim.get('overlap_percentage', 0)}%")
+            col_m3.metric("Similarity Risk", sim.get("risk_level", "Low"))
+
+            if sim.get("matching_sequences"):
+                with st.expander(f"⚠️ Identical 4-Gram Sequences Found ({len(sim['matching_sequences'])})", expanded=False):
+                    st.caption("These sequences match verbatim:")
+                    st.write(", ".join([f"`{s}`" for s in sim["matching_sequences"][:25]]))
+            else:
+                st.success("✅ Zero 4-Gram matches detected! The text structure has been completely transformed.")
+
+            # Visual Inline Diff (Persistent)
+            st.markdown("---")
+            with st.expander("🔍 Visual Inline Word Diff (Red: Source Phrasing / Green: Unique Paraphrase)", expanded=True):
+                st.caption("Word-by-word visual difference: red strikethrough denotes source wording; green denotes unique paraphrased structure:")
+                st.markdown(generate_inline_diff_html(t3_res["plag_input"], t3_res["paraphrased"]), unsafe_allow_html=True)
+
+            # Side-by-side Before / After
+            st.markdown("#### Before / After Text Blocks")
+            p_col1, p_col2 = st.columns(2)
+            with p_col1:
+                st.markdown("**Original Source:**")
+                st.text_area("Original Source", value=t3_res["plag_input"], height=280, key="plag_res_orig", disabled=True, label_visibility="collapsed")
+            with p_col2:
+                st.markdown("**Original Paraphrased Output:**")
+                st.text_area("Paraphrased Output", value=t3_res["paraphrased"], height=280, key="plag_res_out", disabled=True, label_visibility="collapsed")
+
+            # Persistent Downloads
             st.markdown("---")
             st.markdown("#### 📥 Download Paraphrased Result")
-            st.caption("✅ Downloads preserved — download Word, PDF, Markdown, or TXT without buttons vanishing:")
+            st.caption("✅ Downloads preserved — download Word, PDF, Markdown, or TXT without losing your screen state:")
             pd_1, pd_2, pd_3, pd_4 = st.columns(4)
             with pd_1:
                 st.download_button(

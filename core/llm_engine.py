@@ -45,7 +45,7 @@ class LLMProvider(str, Enum):
 
 # Default model per provider
 DEFAULT_MODELS: Dict[str, str] = {
-    LLMProvider.GEMINI: "gemini-flash-latest",
+    LLMProvider.GEMINI: "gemini-flash-lite-latest",
     LLMProvider.OPENAI: "gpt-4o-mini",
     LLMProvider.OPENROUTER: "anthropic/claude-3.5-sonnet",
 }
@@ -53,9 +53,9 @@ DEFAULT_MODELS: Dict[str, str] = {
 # Available model choices per provider (shown in UI)
 AVAILABLE_MODELS: Dict[str, List[str]] = {
     LLMProvider.GEMINI: [
-        "gemini-flash-latest",
         "gemini-flash-lite-latest",
         "gemini-3.5-flash-lite",
+        "gemini-flash-latest",
         "gemini-3.1-flash-lite",
         "gemini-3.6-flash",
         "gemini-3-flash-preview",
@@ -169,7 +169,7 @@ class LLMHumanizerEngine:
     ):
         self.api_key = api_key
         self.provider = LLMProvider(provider.lower())
-        self.model_name = model_name or DEFAULT_MODELS.get(self.provider, "gemini-flash-latest")
+        self.model_name = model_name or DEFAULT_MODELS.get(self.provider, "gemini-flash-lite-latest")
         self.temperature = temperature
         self.max_output_tokens = max_output_tokens
         self.last_error: Optional[str] = None
