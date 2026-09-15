@@ -397,7 +397,12 @@ def get_user_rewrite_prompt(
         directives.append("- **Dynamic Sentence Architecture:** Inject high burstiness by varying sentence lengths (staccato 4-7 word statements paired with rich compound sentences). Eliminate negative parallelisms ('not only X but also Y') and cut superficial trailing '-ing' participles.")
 
     if opts.get("tables_and_figures", True):
-        directives.append("- **Tables, Figures & Data References:** Maintain 100% integrity of all tables, markdown formatting, figure captions, numerical metrics, and citations. Ensure in-text references to tables and figures are academically accurate and natural ('as presented in Table 1', 'Figure 2 demonstrates').")
+        directives.append(
+            "- **Scientific Figures, Visual Interpretation & Data Fidelity:**\n"
+            "  * Factual Invariance: When describing what a figure, diagram, or chart illustrates, preserve 100% of the underlying scientific reality. Never fabricate unobserved phenomena or alter biochemical/physical claims (e.g. do not turn hydrophobic contacts into covalent bonds).\n"
+            "  * Panel & Callout Anchors: Retain exact Figure/Table numbering (e.g. 'Figure 3.1', 'Table 2.1') and panel designations (e.g. '(A)', '(B)', '(C)', '(D)'). Never swap, omit, or misattribute panels.\n"
+            "  * Numerical & Metric Veracity: Any distance (e.g., 2.85 Å), binding energy (e.g., -8.6 kJ/mol), or statistical threshold associated with a figure must be preserved verbatim."
+        )
 
     if opts.get("plagiarism_remover", True):
         directives.append("- **Scientific Paraphrasing & N-Gram Disruption:** Apply the 'Read and Shield' protocol to rebuild sentences completely from scratch. Invert syntactic clauses, shift parts of speech, and strictly break all 4+ word consecutive matching sequences from the source text while preserving 100% of factual citations and numerical data.")

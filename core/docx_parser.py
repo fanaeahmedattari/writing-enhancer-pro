@@ -139,11 +139,16 @@ class DocxChunker:
         chunk_index = 0
         current_section = "general"
         prev_tail_sentence = ""
+        para_idx = 0
 
         for block in iter_block_items(doc):
             if isinstance(block, Paragraph):
                 raw_text = block.text.strip()
-                if not raw_text:
+                has_drawing = bool(block._element.xpath('.//w:drawing') or block._element.xpath('.//w:pict'))
+                has_math = bool(block._element.xpath('.//m:oMath') or block._element.xpath('.//m:oMathPara'))
+
+                if not raw_text and not has_drawing and not has_math:
+                    para_idx += 1
                     continue
 
                 style_name = block.style.name if block.style else "Normal"
@@ -172,9 +177,13 @@ class DocxChunker:
                     "style": style_name,
                     "level": heading_level if is_heading else 0,
                     "is_caption": is_caption,
+                    "has_drawing": has_drawing,
+                    "has_math": has_math,
+                    "para_idx": para_idx,
                     "section": current_section,
                     "word_count": word_count
                 }
+                para_idx += 1
 
                 # Boundary rule: If a major Heading appears and we have reached at least 200 words,
                 # or if adding this element exceeds max_words_per_chunk, push the current chunk.
@@ -196,9 +205,10 @@ class DocxChunker:
                         "word_count": current_word_count,
                         "section_type": chunk_sec,
                         "elements": current_elements,
+                        "para_indices": [el["para_idx"] for el in current_elements if "para_idx" in el],
                         "prev_context_tail": prev_tail_sentence,
                         "has_table": any(el["type"] == "table" for el in current_elements),
-                        "has_figures": any(el.get("is_caption") for el in current_elements)
+                        "has_figures": any(el.get("is_caption") or el.get("has_drawing") for el in current_elements)
                     })
                     
                     prev_tail_sentence = tail_sent
@@ -238,9 +248,10 @@ class DocxChunker:
                         "word_count": current_word_count,
                         "section_type": chunk_sec,
                         "elements": current_elements,
+                        "para_indices": [el["para_idx"] for el in current_elements if "para_idx" in el],
                         "prev_context_tail": prev_tail_sentence,
                         "has_table": any(el["type"] == "table" for el in current_elements),
-                        "has_figures": any(el.get("is_caption") for el in current_elements)
+                        "has_figures": any(el.get("is_caption") or el.get("has_drawing") for el in current_elements)
                     })
                     
                     prev_tail_sentence = tail_sent
@@ -261,9 +272,10 @@ class DocxChunker:
                 "word_count": current_word_count,
                 "section_type": chunk_sec,
                 "elements": current_elements,
+                "para_indices": [el["para_idx"] for el in current_elements if "para_idx" in el],
                 "prev_context_tail": prev_tail_sentence,
                 "has_table": any(el["type"] == "table" for el in current_elements),
-                "has_figures": any(el.get("is_caption") for el in current_elements)
+                "has_figures": any(el.get("is_caption") or el.get("has_drawing") for el in current_elements)
             })
 
 
@@ -366,11 +378,98 @@ class DocxChunker:
             "academic_advice": advice
         }
 
+    def reassemble_docx_preserving_media(
+        self,
+        original_docx_path: str,
+        humanized_chunks: Union[List[str], List[Dict[str, Any]]],
+        output_path: str,
+        typography_preset: str = "Times New Roman",
+        margins_inches: float = 1.0,
+        line_spacing: float = 1.5,
+        alignment: str = "JUSTIFY",
+    ) -> str:
+        """
+        Reconstructs the enhanced document IN-PLACE inside the original .docx package,
+        preserving 100% of all embedded drawings, figures, images, math equations, tables,
+        and header/footer structures.
+        """
+        if not os.path.exists(original_docx_path):
+            raise FileNotFoundError(f"Original file not found for media preservation: {original_docx_path}")
+
+        doc = docx.Document(original_docx_path)
+
+        # 1. Apply Academic Margins
+        for section in doc.sections:
+            section.top_margin = Inches(margins_inches)
+            section.bottom_margin = Inches(margins_inches)
+            section.left_margin = Inches(margins_inches)
+            section.right_margin = Inches(margins_inches)
+
+        align_map = {
+            "JUSTIFY": WD_ALIGN_PARAGRAPH.JUSTIFY,
+            "JUSTIFIED": WD_ALIGN_PARAGRAPH.JUSTIFY,
+            "LEFT": WD_ALIGN_PARAGRAPH.LEFT,
+            "CENTER": WD_ALIGN_PARAGRAPH.CENTER,
+            "RIGHT": WD_ALIGN_PARAGRAPH.RIGHT,
+        }
+        chosen_align = align_map.get(alignment.strip().upper().split()[0], WD_ALIGN_PARAGRAPH.JUSTIFY)
+
+        # 2. Configure Typography Styles
+        if "Normal" in doc.styles:
+            normal = doc.styles["Normal"]
+            normal.font.name = typography_preset
+            normal.font.size = Pt(12)
+            normal.paragraph_format.line_spacing = line_spacing
+
+        # 3. Update paragraphs in-place for each chunk
+        for ch in humanized_chunks:
+            if not isinstance(ch, dict):
+                continue
+
+            humanized_text = ch.get("humanized_text") or ch.get("text") or ""
+            if not humanized_text.strip():
+                continue
+
+            elements = ch.get("elements", [])
+            # Find eligible paragraphs: no drawings, no math, no table
+            target_indices: List[int] = []
+            for el in elements:
+                p_idx = el.get("para_idx")
+                if p_idx is not None and p_idx < len(doc.paragraphs):
+                    p = doc.paragraphs[p_idx]
+                    has_drawing = bool(p._element.xpath('.//w:drawing') or p._element.xpath('.//w:pict'))
+                    has_math = bool(p._element.xpath('.//m:oMath') or p._element.xpath('.//m:oMathPara'))
+                    if not has_drawing and not has_math:
+                        target_indices.append(p_idx)
+
+            if not target_indices:
+                continue
+
+            # Split rewritten text into paragraphs
+            rewritten_paras = [p.strip() for p in humanized_text.split("\n\n") if p.strip()]
+
+            # Update target paragraphs
+            for i, p_idx in enumerate(target_indices):
+                p = doc.paragraphs[p_idx]
+                if i < len(rewritten_paras):
+                    p.text = rewritten_paras[i]
+                    p.alignment = chosen_align
+                    for run in p.runs:
+                        run.font.name = typography_preset
+                else:
+                    # Blank out extra paragraphs in this chunk without breaking XML structure
+                    p.text = ""
+
+        self.strip_document_metadata(doc)
+        doc.save(output_path)
+        return output_path
+
     def reassemble_docx(
         self,
         original_docx_path: str,
         humanized_chunks: Union[List[str], List[Dict[str, Any]]],
         output_path: str,
+        preserve_original_media: bool = True,
         include_title_page: bool = False,
         title_page_data: Optional[Dict[str, str]] = None,
         include_toc: bool = True,
@@ -381,10 +480,20 @@ class DocxChunker:
         alignment: str = "JUSTIFY",
     ) -> str:
         """
-        Reconstructs a clean, publication-ready .docx document with professional
-        academic typography, full paragraph justification, title page (with Assignment support),
-        1-inch margins, running headers/footers, Table of Contents (TOC), and metadata stripping.
+        Reconstructs a publication-ready .docx document.
+        If preserve_original_media=True, retains 100% of embedded images, graphics, and formulas in-place.
         """
+        if preserve_original_media and os.path.exists(original_docx_path) and any(isinstance(c, dict) and "para_indices" in c for c in humanized_chunks):
+            return self.reassemble_docx_preserving_media(
+                original_docx_path=original_docx_path,
+                humanized_chunks=humanized_chunks,
+                output_path=output_path,
+                typography_preset=typography_preset,
+                margins_inches=margins_inches,
+                line_spacing=line_spacing,
+                alignment=alignment,
+            )
+
         new_doc = docx.Document()
 
         # Alignment mapping

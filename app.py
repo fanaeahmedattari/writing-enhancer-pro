@@ -294,6 +294,12 @@ if opt_title_page:
             "date": tp_date,
         }
 
+opt_preserve_media = st.sidebar.checkbox(
+    "🖼️ Preserve Original Figures & Media (In-Place)",
+    value=True,
+    help="Default & Recommended for Theses/Journals: In-place document reassembly preserves 100% of all embedded images, molecular dockings, Western blots, charts, and equations."
+)
+
 opt_toc = st.sidebar.checkbox(
     "📑 Generate Table of Contents (TOC)",
     value=True,
@@ -1166,12 +1172,17 @@ with tab_doc:
                         # Plagiarism & N-Gram Overlap Scan
                         ngram_res = calculate_ngram_similarity(full_text, full_humanized, n=4)
 
+                        # Scientific Data & Numerical Integrity Audit
+                        from core.data_integrity import audit_scientific_fidelity
+                        fidelity_res = audit_scientific_fidelity(full_text, full_humanized)
+
                         # Prepare and cache all download formats
                         output_path = input_path.replace(".docx", "_enhanced.docx")
                         chunker.reassemble_docx(
-                            input_path,
-                            humanized_texts,
-                            output_path,
+                            original_docx_path=input_path,
+                            humanized_chunks=results,
+                            output_path=output_path,
+                            preserve_original_media=opt_preserve_media,
                             include_title_page=opt_title_page,
                             title_page_data=title_page_dict,
                             include_toc=opt_toc,
@@ -1210,6 +1221,7 @@ with tab_doc:
                             "post_score": post_audit['score'],
                             "post_audit": post_audit,
                             "ngram_res": ngram_res,
+                            "fidelity_res": fidelity_res,
                             "results": results,
                             "errors": errors,
                         }
@@ -1260,6 +1272,28 @@ with tab_doc:
                     with st.expander(f"⚠️ Matching 4-Gram Sequences ({len(ngram_res['matching_sequences'])})", expanded=False):
                         st.caption("These exact 4-word sequences match the source text and could be flagged by Turnitin / QuillBot:")
                         st.write(", ".join([f"`{seq}`" for seq in ngram_res["matching_sequences"][:25]]))
+
+            # Scientific Data & Figure Integrity Audit
+            fidelity_res = t1_res.get("fidelity_res", {})
+            if fidelity_res:
+                st.markdown("#### 🔬 Scientific Data & Figure Integrity Audit")
+                fid_c1, fid_c2, fid_c3 = st.columns(3)
+                fid_score = fidelity_res.get("fidelity_score", 100.0)
+                fid_c1.metric("Fidelity Score", f"🔬 {fid_score}%")
+                passed = fidelity_res.get("passed_checks", 0)
+                total = fidelity_res.get("total_checks", 0)
+                fid_c2.metric("Verified Scientific Metrics", f"{passed}/{total}")
+                is_safe = fidelity_res.get("is_safe_for_academic_submission", True)
+                fid_c3.metric("Academic Submission Safety", "✅ Verified Safe" if is_safe else "⚠️ Review Discrepancies")
+
+                discrepancies = fidelity_res.get("discrepancies", [])
+                if discrepancies:
+                    with st.expander(f"⚠️ Flagged Scientific Discrepancies ({len(discrepancies)})", expanded=True):
+                        st.caption("The following values, p-values, or figure callouts differed between original and enhanced text:")
+                        for d in discrepancies:
+                            st.markdown(f"- **[{d['severity']}] {d['type']}**: {d['detail']}")
+                else:
+                    st.success("✅ **100% Scientific Fidelity**: All Figure/Table references, p-values, binding energies, percentages, and active-site residue codes are verified intact!")
 
             # Visual Inline Diff (Persistent)
             if res_list:
