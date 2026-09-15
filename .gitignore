@@ -24,3 +24,9 @@ __pycache__/
 Thumbs.db
 .vscode/
 .idea/
+
+# Local documents and user data
+documents/
+*.docx
+*.pdf
+*.pptx

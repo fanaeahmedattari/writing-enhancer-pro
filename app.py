@@ -151,7 +151,7 @@ Or in **Streamlit Cloud Settings > Secrets**.
 
 # --- Model Selection ---
 provider_enum = LLMProvider(selected_provider)
-model_list = AVAILABLE_MODELS.get(provider_enum, ["gemini-flash-lite-latest"])
+model_list = AVAILABLE_MODELS.get(provider_enum, ["gemini-2.5-flash"])
 default_model = DEFAULT_MODELS.get(provider_enum, model_list[0])
 default_idx = model_list.index(default_model) if default_model in model_list else 0
 
@@ -2466,7 +2466,7 @@ Selecting the **Conclusion** section enforces the 4-part academic sequence:
         with st.expander("🔑 1. API Provider & Model Selection", expanded=True):
             st.markdown("""
 - **Google Gemini (Recommended — 100% Free):** Get a free key at [Google AI Studio](https://aistudio.google.com/apikey). No credit card required. Free tier offers generous requests per minute.
-  - *Models:* `gemini-flash-latest` (fastest & default), `gemini-flash-lite-latest`, `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, `gemini-pro-latest`.
+  - *Models:* `gemini-2.5-flash` (recommended default), `gemini-2.5-flash-lite`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`.
 - **OpenRouter (Multi-Model):** Single key for Claude 3.5 Sonnet, GPT-4o, and Llama 3.3.
 - **OpenAI:** Direct OpenAI API keys for GPT-4o and GPT-4o-mini.
 """)

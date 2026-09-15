@@ -45,7 +45,7 @@ class LLMProvider(str, Enum):
 
 # Default model per provider
 DEFAULT_MODELS: Dict[str, str] = {
-    LLMProvider.GEMINI: "gemini-flash-lite-latest",
+    LLMProvider.GEMINI: "gemini-2.5-flash",
     LLMProvider.OPENAI: "gpt-4o-mini",
     LLMProvider.OPENROUTER: "anthropic/claude-3.5-sonnet",
 }
@@ -53,13 +53,11 @@ DEFAULT_MODELS: Dict[str, str] = {
 # Available model choices per provider (shown in UI)
 AVAILABLE_MODELS: Dict[str, List[str]] = {
     LLMProvider.GEMINI: [
-        "gemini-flash-lite-latest",
-        "gemini-3.5-flash-lite",
-        "gemini-flash-latest",
-        "gemini-3.1-flash-lite",
-        "gemini-3.6-flash",
-        "gemini-3-flash-preview",
-        "gemini-pro-latest",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
     ],
     LLMProvider.OPENAI: [
         "gpt-4o-mini",
