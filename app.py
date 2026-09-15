@@ -151,7 +151,7 @@ Or in **Streamlit Cloud Settings > Secrets**.
 
 # --- Model Selection ---
 provider_enum = LLMProvider(selected_provider)
-model_list = AVAILABLE_MODELS.get(provider_enum, ["gemini-2.5-flash"])
+model_list = AVAILABLE_MODELS.get(provider_enum, ["gemini-flash-latest"])
 default_model = DEFAULT_MODELS.get(provider_enum, model_list[0])
 default_idx = model_list.index(default_model) if default_model in model_list else 0
 
@@ -839,6 +839,7 @@ def generate_inline_diff_html(original: str, modified: str) -> str:
     mod_words = modified.split()
 
     matcher = difflib.SequenceMatcher(None, orig_words, mod_words)
+    has_differences = any(tag in ("delete", "insert", "replace") for tag, _, _, _, _ in matcher.get_opcodes())
     html_chunks = []
 
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
@@ -863,8 +864,13 @@ def generate_inline_diff_html(original: str, modified: str) -> str:
             )
 
     diff_body = " ".join(html_chunks).replace("\n", "<br/>")
+    notice = ""
+    if not has_differences:
+        notice = '<div style="background-color: #fff3e0; color: #e65100; padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 0.95em; font-weight: 500; border-left: 4px solid #ff9800;">⚠️ Notice: Zero word differences detected between original and output. Verify that the LLM call succeeded and the model generated new text.</div>'
+
     return f"""
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.8; font-size: 1.02em; padding: 18px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff; max-height: 450px; overflow-y: auto;">
+        {notice}
         {diff_body}
     </div>
     """
@@ -965,7 +971,24 @@ with tab_doc:
 
         with st.spinner("Parsing document structure..."):
             chunks = chunker.parse_docx(input_path)
-            fig_tbl_scan = chunker.scan_figures_and_tables(input_path)
+            try:
+                fig_tbl_scan = chunker.scan_figures_and_tables(input_path)
+            except Exception as _scan_err:
+                fig_tbl_scan = {
+                    "total_tables": 0,
+                    "tables_structure": [],
+                    "total_figure_captions": 0,
+                    "figure_captions": [],
+                    "total_table_captions": 0,
+                    "table_captions": [],
+                    "in_text_figure_citations": [],
+                    "in_text_table_citations": [],
+                    "missing_figure_citations": [],
+                    "missing_table_citations": [],
+                    "uncaptioned_figure_references": [],
+                    "uncaptioned_table_references": [],
+                    "academic_advice": []
+                }
 
         # Document overview
         total_words = sum(c["word_count"] for c in chunks)
@@ -1115,7 +1138,11 @@ with tab_doc:
                         errors = sum(1 for r in results if r["status"] != "success")
 
                         if errors > 0:
-                            st.warning(f"⚠️ {errors} chunk(s) fell back to original text due to API errors.")
+                            st.error(f"❌ {errors} chunk(s) failed to enhance due to API/provider errors and remained as original text.")
+                            with st.expander("🔍 View Error Details", expanded=True):
+                                for r in results:
+                                    if r["status"] != "success":
+                                        st.markdown(f"- **Chunk {r['chunk_id']} ({r['section_type']})**: `{r['status']}`")
 
                         # Assemble humanized texts
                         humanized_texts = [r["humanized_text"] for r in results]
@@ -1156,10 +1183,10 @@ with tab_doc:
                             cmp_left, cmp_right = st.columns(2)
                             with cmp_left:
                                 st.markdown("**Original:**")
-                                st.text_area("", value=results[0]["original_text"], height=230, key="cmp_orig", disabled=True)
+                                st.text_area("Original Text", value=results[0]["original_text"], height=230, key="cmp_orig", disabled=True, label_visibility="collapsed")
                             with cmp_right:
                                 st.markdown("**Enhanced:**")
-                                st.text_area("", value=results[0]["humanized_text"], height=230, key="cmp_human", disabled=True)
+                                st.text_area("Enhanced Text", value=results[0]["humanized_text"], height=230, key="cmp_human", disabled=True, label_visibility="collapsed")
 
                         # Prepare and cache all download formats
                         output_path = input_path.replace(".docx", "_enhanced.docx")
@@ -1284,9 +1311,14 @@ with tab_text:
 
     if "tab2_text_content" not in st.session_state:
         st.session_state["tab2_text_content"] = ""
+    if "_last_t2_files_sig" not in st.session_state:
+        st.session_state["_last_t2_files_sig"] = None
+
+    loaded_texts = {}
+    chosen_file = None
 
     if t2_files:
-        loaded_texts = {}
+        current_sig = tuple((f.name, f.size) for f in t2_files)
         for f in t2_files:
             fn = f.name.lower()
             if fn.endswith(".docx"):
@@ -1297,6 +1329,13 @@ with tab_text:
                 loaded_texts[f.name] = extract_text_from_pptx(f.getvalue())
             else:
                 loaded_texts[f.name] = f.getvalue().decode("utf-8", errors="ignore")
+
+        # Automatically populate editor text upon new file upload
+        if st.session_state["_last_t2_files_sig"] != current_sig:
+            st.session_state["_last_t2_files_sig"] = current_sig
+            first_key = list(loaded_texts.keys())[0]
+            st.session_state["tab2_text_content"] = loaded_texts[first_key]
+            st.rerun()
 
         c_up1, c_up2, c_up3 = st.columns([2, 1, 1])
         with c_up1:
@@ -1310,6 +1349,12 @@ with tab_text:
                 merged = "\n\n".join([f"# Section: {k}\n\n{v}" for k, v in loaded_texts.items()])
                 st.session_state["tab2_text_content"] = merged
                 st.rerun()
+
+        if chosen_file and chosen_file in loaded_texts:
+            f_words = len(loaded_texts[chosen_file].split())
+            st.success(f"✅ Loaded **{f_words:,} words** from `{chosen_file}` into the editor below.")
+    else:
+        st.session_state["_last_t2_files_sig"] = None
 
     input_text = st.text_area(
         "Paste or edit your text here:",
@@ -1452,8 +1497,14 @@ with tab_text:
         st.caption(f"Input Word Count: **{word_count} words**")
 
     if st.button("🚀 Rewrite Text", type="primary", use_container_width=True, key="text_process"):
+        # Auto-fallback: if text area is empty but file was uploaded, use uploaded file text
+        if not input_text.strip() and t2_files and loaded_texts:
+            active_name = chosen_file or list(loaded_texts.keys())[0]
+            input_text = loaded_texts.get(active_name, "")
+            st.session_state["tab2_text_content"] = input_text
+
         if not input_text.strip():
-            st.warning("⚠️ Please paste some text first.")
+            st.warning("⚠️ Please paste some text or upload a document to rewrite.")
         elif not api_key:
             st.error("⚠️ Please enter your API Key in the sidebar.")
         elif not any(user_options.values()):
@@ -1522,10 +1573,10 @@ with tab_text:
                 left_col, right_col = st.columns(2)
                 with left_col:
                     st.markdown("**Original:**")
-                    st.text_area("", value=input_text, height=250, key="txt_orig", disabled=True)
+                    st.text_area("Original Input", value=input_text, height=250, key="txt_orig", disabled=True, label_visibility="collapsed")
                 with right_col:
                     st.markdown("**Enhanced:**")
-                    st.text_area("", value=humanized, height=250, key="txt_result", disabled=True)
+                    st.text_area("Enhanced Output", value=humanized, height=250, key="txt_result", disabled=True, label_visibility="collapsed")
 
                 # Prepare and cache all download formats
                 docx_bytes_t2 = text_to_docx_bytes(
@@ -1670,7 +1721,7 @@ with tab_plagiarism:
                             pass
                 st.success(f"📁 Extracted **{len(plag_input.split()):,} words** from `{p_file.name}`")
                 with st.expander("Preview Extracted Source Text", expanded=False):
-                    st.text_area("", value=plag_input, height=180, disabled=True, key="plag_preview")
+                    st.text_area("Extracted Source Text", value=plag_input, height=180, disabled=True, key="plag_preview", label_visibility="collapsed")
         else:
             plag_input = st.text_area(
                 "Paste original text:",
@@ -1730,10 +1781,10 @@ with tab_plagiarism:
                     p_col1, p_col2 = st.columns(2)
                     with p_col1:
                         st.markdown("**Original Source:**")
-                        st.text_area("", value=plag_input, height=280, key="plag_res_orig", disabled=True)
+                        st.text_area("Original Source", value=plag_input, height=280, key="plag_res_orig", disabled=True, label_visibility="collapsed")
                     with p_col2:
                         st.markdown("**Original Paraphrased Output:**")
-                        st.text_area("", value=paraphrased, height=280, key="plag_res_out", disabled=True)
+                        st.text_area("Paraphrased Output", value=paraphrased, height=280, key="plag_res_out", disabled=True, label_visibility="collapsed")
 
                     # Visual Inline Diff
                     with st.expander("🔍 Visual Inline Word Diff (Red: Source Phrasing / Green: Unique Paraphrase)", expanded=True):
@@ -1908,7 +1959,7 @@ with tab_plagiarism:
                         draft_content = dft_file.getvalue().decode("utf-8", errors="ignore")
                     st.success(f"✍️ Loaded draft `{dft_file.name}` ({len(draft_content.split()):,} words)")
                     with st.expander("Preview Draft Content", expanded=False):
-                        st.text_area("", value=draft_content, height=160, disabled=True, key="dft_preview_box")
+                        st.text_area("Preview Draft Content", value=draft_content, height=160, disabled=True, key="dft_preview_box", label_visibility="collapsed")
             else:
                 draft_content = st.text_area(
                     "Paste your draft here:",
@@ -2354,8 +2405,8 @@ Selecting the **Conclusion** section enforces the 4-part academic sequence:
 
         with st.expander("🔑 1. API Provider & Model Selection", expanded=True):
             st.markdown("""
-- **Google Gemini (Recommended — 100% Free):** Get a free key at [Google AI Studio](https://aistudio.google.com/apikey). No credit card required. Free tier offers 15 requests per minute.
-  - *Models:* `gemini-2.5-flash` (fastest & default), `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-2.5-pro`.
+- **Google Gemini (Recommended — 100% Free):** Get a free key at [Google AI Studio](https://aistudio.google.com/apikey). No credit card required. Free tier offers generous requests per minute.
+  - *Models:* `gemini-flash-latest` (fastest & default), `gemini-flash-lite-latest`, `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, `gemini-pro-latest`.
 - **OpenRouter (Multi-Model):** Single key for Claude 3.5 Sonnet, GPT-4o, and Llama 3.3.
 - **OpenAI:** Direct OpenAI API keys for GPT-4o and GPT-4o-mini.
 """)

@@ -45,7 +45,7 @@ class LLMProvider(str, Enum):
 
 # Default model per provider
 DEFAULT_MODELS: Dict[str, str] = {
-    LLMProvider.GEMINI: "gemini-2.5-flash",
+    LLMProvider.GEMINI: "gemini-flash-latest",
     LLMProvider.OPENAI: "gpt-4o-mini",
     LLMProvider.OPENROUTER: "anthropic/claude-3.5-sonnet",
 }
@@ -53,11 +53,13 @@ DEFAULT_MODELS: Dict[str, str] = {
 # Available model choices per provider (shown in UI)
 AVAILABLE_MODELS: Dict[str, List[str]] = {
     LLMProvider.GEMINI: [
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-2.5-pro",
-        "gemini-1.5-pro",
+        "gemini-flash-latest",
+        "gemini-flash-lite-latest",
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+        "gemini-3.6-flash",
+        "gemini-3-flash-preview",
+        "gemini-pro-latest",
     ],
     LLMProvider.OPENAI: [
         "gpt-4o-mini",
@@ -167,9 +169,10 @@ class LLMHumanizerEngine:
     ):
         self.api_key = api_key
         self.provider = LLMProvider(provider.lower())
-        self.model_name = model_name or DEFAULT_MODELS.get(self.provider, "gemini-2.5-flash")
+        self.model_name = model_name or DEFAULT_MODELS.get(self.provider, "gemini-flash-latest")
         self.temperature = temperature
         self.max_output_tokens = max_output_tokens
+        self.last_error: Optional[str] = None
 
         # Initialize provider-specific client
         self._gemini_client = None
@@ -268,8 +271,12 @@ class LLMHumanizerEngine:
         raw_output = self._call_with_retry(user_prompt, retries=retries)
 
         if raw_output is None:
-            logger.warning("All retries exhausted, returning original text as fallback")
-            return chunk_text
+            err_msg = self.last_error or "All retry attempts exhausted"
+            logger.error(f"LLM generation failed: {err_msg}")
+            raise RuntimeError(
+                f"LLM processing failed ({self.provider.value} / {self.model_name}): {err_msg}. "
+                "Please verify your API key, check model selection in the sidebar, or retry."
+            )
 
         # --- Step 4: Post-clean LLM output ---
         cleaned_output = sanitize_llm_output(raw_output)
@@ -418,12 +425,13 @@ class LLMHumanizerEngine:
                     )
                     time.sleep(wait_time)
                 else:
-                    logger.error(f"Non-retryable error on attempt {attempt + 1} with {current_model}: {e}")
+                    logger.error(f"Error on attempt {attempt + 1} with {current_model}: {e}")
                     if attempt == retries - 1:
                         break
                     time.sleep(1)
 
         logger.error(f"All {retries} attempts failed. Last error: {last_error}")
+        self.last_error = str(last_error) if last_error else "Unknown error"
         return None
 
     # ------------------------------------------------------------------ #
@@ -442,6 +450,7 @@ class LLMHumanizerEngine:
                 system_instruction=SYSTEM_HUMANIZER_PROMPT,
                 temperature=self.temperature,
                 max_output_tokens=self.max_output_tokens,
+                automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
             ),
         )
 
@@ -482,22 +491,19 @@ class LLMHumanizerEngine:
         work_mode: str = "journal",
         english_tone: str = "academic",
         strict_mode: bool = False,
+        retries: int = 3,
     ) -> str:
-        """
-        Convenience method for rewriting a single text snippet without
-        document parsing or chunking. Supports target word count and length modes,
-        work modes, English tones, and strict academic mode.
-        """
+        """Convenience method to humanize a plain text string."""
         return self.process_single_chunk(
             chunk_text=text,
             section_type=section_type,
             aggressive=aggressive,
             options=options,
-            prev_context_tail="",
             length_mode=length_mode,
             target_min=target_min,
             target_max=target_max,
             work_mode=work_mode,
             english_tone=english_tone,
             strict_mode=strict_mode,
+            retries=retries,
         )

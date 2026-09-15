@@ -302,30 +302,38 @@ class DocxChunker:
 
             fig_match = FIGURE_CAPTION_RE.match(text)
             if fig_match:
+                fig_id = (fig_match.group(1) or "").strip()
+                caption_text = (fig_match.group(2) or "").strip()
                 figure_captions.append({
-                    "id": fig_match.group(1),
-                    "caption": fig_match.group(2).strip(),
+                    "id": fig_id,
+                    "caption": caption_text,
                     "full_text": text
                 })
                 continue
 
             tbl_match = TABLE_CAPTION_RE.match(text)
             if tbl_match:
+                tbl_id = (tbl_match.group(1) or "").strip()
+                caption_text = (tbl_match.group(2) or "").strip()
                 table_captions.append({
-                    "id": tbl_match.group(1),
-                    "caption": tbl_match.group(2).strip(),
+                    "id": tbl_id,
+                    "caption": caption_text,
                     "full_text": text
                 })
                 continue
 
             # Body text citation scan
             for f_match in IN_TEXT_FIGURE_RE.finditer(text):
-                in_text_fig_refs.add(f_match.group(1).lower())
+                matched_fig = f_match.group(1)
+                if matched_fig:
+                    in_text_fig_refs.add(matched_fig.lower().strip())
             for t_match in IN_TEXT_TABLE_RE.finditer(text):
-                in_text_tbl_refs.add(t_match.group(1).lower())
+                matched_tbl = t_match.group(1)
+                if matched_tbl:
+                    in_text_tbl_refs.add(matched_tbl.lower().strip())
 
-        caption_fig_ids = {fc["id"].lower() for fc in figure_captions}
-        caption_tbl_ids = {tc["id"].lower() for tc in table_captions}
+        caption_fig_ids = {fc["id"].lower() for fc in figure_captions if fc.get("id")}
+        caption_tbl_ids = {tc["id"].lower() for tc in table_captions if tc.get("id")}
 
         missing_fig_citations = list(caption_fig_ids - in_text_fig_refs)
         missing_tbl_citations = list(caption_tbl_ids - in_text_tbl_refs)
