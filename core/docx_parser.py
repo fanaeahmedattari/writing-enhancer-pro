@@ -343,6 +343,50 @@ def apply_smart_component_layout(
         apply_academic_table_styling(tbl, border_style=table_border_style, typography_preset=typography_preset)
 
 
+def extract_global_document_context(docx_path: str) -> str:
+    """
+    Extracts high-level macro-context (Title, primary headings, core targets,
+    and defined acronyms) from the document to serve as the 'North Star'
+    passed to every chunk during rewriting.
+    """
+    if not docx_path or not os.path.exists(docx_path):
+        return ""
+
+    try:
+        doc = docx.Document(docx_path)
+    except Exception:
+        return ""
+
+    title = ""
+    headings: List[str] = []
+    acronyms_found: Set[str] = set()
+
+    acronym_re = re.compile(r'\(([A-Z]{2,6})\)')
+
+    for p in doc.paragraphs[:40]:
+        txt = p.text.strip()
+        if not txt:
+            continue
+        style_name = p.style.name.lower() if p.style else ""
+        if not title and (style_name == "title" or (len(txt.split()) in range(4, 25) and not txt.endswith("."))):
+            title = txt
+        elif style_name.startswith("heading"):
+            headings.append(txt)
+        
+        for ac in acronym_re.findall(txt):
+            acronyms_found.add(ac)
+
+    context_lines = []
+    if title:
+        context_lines.append(f"Manuscript Title: {title}")
+    if headings:
+        context_lines.append(f"Major Sections / Headings: {', '.join(headings[:5])}")
+    if acronyms_found:
+        context_lines.append(f"Established Acronyms: {', '.join(sorted(list(acronyms_found))[:10])}")
+
+    return "\n".join(context_lines)
+
+
 class DocxChunker:
     """
     Parses .docx files into manageable chunks while preserving structural 
@@ -515,38 +559,7 @@ class DocxChunker:
         and defined acronyms) from the document to serve as the 'North Star'
         passed to every chunk during rewriting.
         """
-        if not os.path.exists(docx_path):
-            return ""
-
-        doc = docx.Document(docx_path)
-        title = ""
-        headings: List[str] = []
-        acronyms_found: Set[str] = set()
-
-        acronym_re = re.compile(r'\(([A-Z]{2,6})\)')
-
-        for p in doc.paragraphs[:40]:
-            txt = p.text.strip()
-            if not txt:
-                continue
-            style_name = p.style.name.lower() if p.style else ""
-            if not title and (style_name == "title" or (len(txt.split()) in range(4, 25) and not txt.endswith("."))):
-                title = txt
-            elif style_name.startswith("heading"):
-                headings.append(txt)
-            
-            for ac in acronym_re.findall(txt):
-                acronyms_found.add(ac)
-
-        context_lines = []
-        if title:
-            context_lines.append(f"Manuscript Title: {title}")
-        if headings:
-            context_lines.append(f"Major Sections / Headings: {', '.join(headings[:5])}")
-        if acronyms_found:
-            context_lines.append(f"Established Acronyms: {', '.join(sorted(list(acronyms_found))[:10])}")
-
-        return "\n".join(context_lines)
+        return extract_global_document_context(docx_path)
 
     def scan_figures_and_tables(self, docx_path: str) -> Dict[str, Any]:
         """

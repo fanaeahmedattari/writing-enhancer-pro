@@ -14,7 +14,11 @@ from typing import Any, Dict, List, Optional, Union
 import streamlit as st
 from dotenv import load_dotenv
 
-from core.docx_parser import DocxChunker
+import importlib
+import core.docx_parser
+if not hasattr(core.docx_parser.DocxChunker, "extract_global_document_context") or not hasattr(core.docx_parser, "extract_global_document_context"):
+    importlib.reload(core.docx_parser)
+from core.docx_parser import DocxChunker, extract_global_document_context
 from core.llm_engine import (
     LLMHumanizerEngine,
     LLMProvider,
@@ -1273,7 +1277,14 @@ with tab_doc:
                             progress_bar.progress(pct, text=message)
 
                         # Extract Global Document Context (The North Star)
-                        global_context = chunker.extract_global_document_context(input_path)
+                        global_context = ""
+                        try:
+                            if hasattr(chunker, "extract_global_document_context"):
+                                global_context = chunker.extract_global_document_context(input_path)
+                            else:
+                                global_context = extract_global_document_context(input_path)
+                        except Exception:
+                            global_context = ""
 
                         results = engine.process_all_chunks(
                             chunks=chunks,
