@@ -426,6 +426,9 @@ class DocxChunker:
         margins_inches: float = 1.0,
         line_spacing: float = 1.5,
         alignment: str = "JUSTIFY",
+        include_title_page: bool = False,
+        title_page_data: Optional[Dict[str, str]] = None,
+        include_toc: bool = False,
     ) -> str:
         """
         Reconstructs the enhanced document IN-PLACE inside the original .docx package,
@@ -436,6 +439,7 @@ class DocxChunker:
             raise FileNotFoundError(f"Original file not found for media preservation: {original_docx_path}")
 
         doc = docx.Document(original_docx_path)
+        para_map = {i: p for i, p in enumerate(doc.paragraphs)}
 
         # 1. Apply Academic Margins
         for section in doc.sections:
@@ -474,8 +478,8 @@ class DocxChunker:
             target_indices: List[int] = []
             for el in elements:
                 p_idx = el.get("para_idx")
-                if p_idx is not None and p_idx < len(doc.paragraphs):
-                    p = doc.paragraphs[p_idx]
+                if p_idx is not None and p_idx in para_map:
+                    p = para_map[p_idx]
                     has_drawing = bool(p._element.xpath('.//w:drawing') or p._element.xpath('.//w:pict'))
                     has_math = bool(p._element.xpath('.//m:oMath') or p._element.xpath('.//m:oMathPara'))
                     if not has_drawing and not has_math:
@@ -489,15 +493,47 @@ class DocxChunker:
 
             # Update target paragraphs
             for i, p_idx in enumerate(target_indices):
-                p = doc.paragraphs[p_idx]
+                p = para_map.get(p_idx)
+                if p is None:
+                    continue
                 if i < len(rewritten_paras):
-                    p.text = rewritten_paras[i]
-                    p.alignment = chosen_align
+                    para_text = rewritten_paras[i]
+                    is_h = para_text.startswith("#")
+                    if is_h:
+                        clean_heading = re.sub(r"^#{1,6}\s*", "", para_text).strip()
+                        p.text = clean_heading
+                        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                    else:
+                        p.text = para_text
+                        p.alignment = chosen_align
                     for run in p.runs:
                         run.font.name = typography_preset
                 else:
                     # Blank out extra paragraphs in this chunk without breaking XML structure
                     p.text = ""
+
+            # If there are MORE rewritten paragraphs than original target paragraphs,
+            # dynamically insert the extra paragraphs right after the last target paragraph
+            if len(rewritten_paras) > len(target_indices) and target_indices:
+                last_p = para_map.get(target_indices[-1])
+                if last_p is not None:
+                    curr_p = last_p
+                    for extra_text in rewritten_paras[len(target_indices):]:
+                        new_p_elem = OxmlElement('w:p')
+                        curr_p._p.addnext(new_p_elem)
+                        new_p_obj = docx.text.paragraph.Paragraph(new_p_elem, doc)
+
+                        is_h = extra_text.startswith("#")
+                        if is_h:
+                            clean_h = re.sub(r"^#{1,6}\s*", "", extra_text).strip()
+                            new_p_obj.text = clean_h
+                            new_p_obj.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                        else:
+                            new_p_obj.text = extra_text
+                            new_p_obj.alignment = chosen_align
+                        for run in new_p_obj.runs:
+                            run.font.name = typography_preset
+                        curr_p = new_p_obj
 
         self.strip_document_metadata(doc)
         doc.save(output_path)
@@ -531,6 +567,9 @@ class DocxChunker:
                 margins_inches=margins_inches,
                 line_spacing=line_spacing,
                 alignment=alignment,
+                include_title_page=include_title_page,
+                title_page_data=title_page_data,
+                include_toc=include_toc,
             )
 
         new_doc = docx.Document()

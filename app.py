@@ -1068,12 +1068,12 @@ with tab_doc:
                     st.write(f"Detected {struct_info['heading_count']} headings, {struct_info['figure_count']} figure captions, {struct_info['table_caption_count']} table captions.")
 
                     st.write(f"Step 2: 📐 Applying '{opt_alignment}' paragraph alignment, 1.0-inch margins, and typography...")
-                    raw_texts = [c["text"] for c in chunks]
                     output_fmt_docx = input_path.replace(".docx", "_formatted.docx")
                     chunker.reassemble_docx(
                         original_docx_path=input_path,
-                        humanized_chunks=raw_texts,
+                        humanized_chunks=chunks,
                         output_path=output_fmt_docx,
+                        preserve_original_media=opt_preserve_media,
                         include_title_page=opt_title_page,
                         title_page_data=title_page_dict,
                         include_toc=opt_toc,
@@ -2355,6 +2355,7 @@ with tab_help:
             "✏️ Tab 2: Quick Text Rewriter",
             "🛡️ Tab 3: Plagiarism & Citations",
             "🔬 Tab 4: AI Marker Auditor",
+            "🧪 Scientific Data & Figure Preservation Guide",
             "⚙️ Sidebar Controls & Parameters",
             "🛡️ Anti-AI & Turnitin Playbook",
             "❓ Frequently Asked Questions (FAQ)",
@@ -2378,6 +2379,7 @@ with tab_help:
 #### 🌟 Two Ways to Process:
 1. **📐 Format Document Only (0 API Cost — Instant 1-Second Execution):**
    - **No API key or tokens required.**
+   - Retains **100% of embedded drawings, figures, and equations in-place**.
    - Instantly creates a publication-ready manuscript with:
      - Academic Title Page (with Course Code, Student ID, and Instructor name for Assignments).
      - Dynamic Table of Contents (TOC) with dot leaders (`...... Page X`).
@@ -2386,17 +2388,23 @@ with tab_help:
      - Full paragraph justification (`JUSTIFY`) across Word and PDF.
      - Automatic Figure & Table caption detection.
 2. **🚀 Humanize & Enhance Document (AI-Powered):**
-   - Chunks large documents into safe word blocks (e.g. 400 words) with cross-chunk context stitching.
+   - **In-Place Media Preservation:** Rewrites text paragraphs in-place within the original Word XML package without stripping images, charts, or math equations.
+   - **Global Document Context ("The North Star"):** Passes high-level macro-context (manuscript title, core hypotheses, acronyms) across all chunks to eliminate chunk-boundary amnesia and terminology drift.
+   - **Dynamic Tail Stitching:** Feeds the actual newly generated sentence from Chunk $K$ into Chunk $K+1$ for unified flow.
+   - Chunks large documents into safe word blocks (e.g. 400 words).
    - Eliminates AI detection markers (ZeroGPT, GPTZero, Turnitin).
    - Enhances vocabulary, academic register, and logical sentence flow.
 """)
         with col_t1_b:
-            st.markdown("""
+            st.markdown(r"""
 #### 📋 Step-by-Step Instructions:
 1. **Upload your document:** Drag and drop your `.docx`, `.pdf`, `.pptx`, `.txt`, or `.md` file.
 2. **Review Step 1 Pre-Analysis Card:** The app scans your document and displays total words, headings, figure captions, table captions, and estimated page count.
 3. **Choose your mode:** Click **"📐 Format Document Only"** for instant formatting or **"🚀 Humanize & Enhance Document"** for full AI rewriting.
-4. **Inspect Results:** View Before/After comparison, 4-Gram originality scores, and the Inline Visual Word Diff (Red: removed AI words, Green: scholarly replacements).
+4. **Inspect Results:**
+   - **🔬 Scientific Data & Figure Integrity Audit Card:** Verifies that $p$-values, binding affinities, bond lengths ($\text{\AA}$), active-site residue codes, and citation ordering remained intact.
+   - **🛡️ Plagiarism & N-Gram Overlap Scan:** Inspects 4-gram sequences matching the source text.
+   - **🔍 Visual Inline Word Diff:** Red strikethrough denotes removed AI clichés; green denotes scholarly replacements.
 5. **Download Formats:** Download in `.docx`, `.pdf`, `.md`, or `.txt`. Download buttons are preserved permanently and never disappear upon clicking!
 """)
 
@@ -2495,6 +2503,45 @@ Selecting the **Conclusion** section enforces the 4-part academic sequence:
 """)
 
     # ------------------------------------------------------------- #
+    # 4.5 Scientific Data & Figure Preservation Guide
+    # ------------------------------------------------------------- #
+    elif help_section == "🧪 Scientific Data & Figure Preservation Guide":
+        st.markdown("### 🧪 Scientific Data, Figure & Mathematical Integrity Guide")
+        st.info("💡 **Engineered for High-Stakes Publications:** Learn how Writing Enhancer Pro protects empirical values, embedded figures, charts, and citation ordering during AI enhancement.")
+
+        s1, s2 = st.columns(2)
+        with s1:
+            st.markdown("""
+#### 🖼️ In-Place Media Preservation Engine:
+In standard AI text humanizers, uploading a `.docx` file strips all images, molecular docking poses, gel electrophoresis blots, and charts because the file is decomposed into plain text.
+
+**How Writing Enhancer Pro Solves This:**
+- **Zero Media Stripping:** Our parser traverses the native OpenXML DOM (`w:drawing`, `w:pict`, `m:oMath`) and updates text paragraphs strictly in-place.
+- **Bit-for-Bit Fidelity:** All raster bitmaps, vector graphics, equations, and complex structures remain identical down to the byte.
+- **Automatic Heading & Caption Protection:** Headings retain their structural styles without intrusive `#` markdown symbols, and captions remain intact under their corresponding graphics.
+""")
+        with s2:
+            st.markdown("""
+#### 🔬 Deterministic Data Integrity Auditor:
+LLMs often hallucinate or inadvertently mutate numbers during aggressive paraphrasing. To guarantee empirical validity, the app runs a regex-level audit comparing the source and enhanced text:
+
+- **$p$-Values & Confidence Intervals:** Detects $p < 0.05$, $p < 0.001$, and 95% CI values. If an LLM alters a significance metric, a high-severity alert is raised.
+- **Physical & Chemical Metrics:** Audits binding energies (e.g., $-8.6\\text{ kcal/mol}$ or $\\text{kJ/mol}$), bond lengths (e.g., $2.84\\text{ \\AA}$), molarities, and percentages.
+- **Active-Site Residue Identifiers:** Verifies that biological codes (e.g., `Cys166`, `His301`, `Glu170`) are never altered or hallucinated.
+- **Figure & Table Callouts:** Guarantees that references like *"Figure 3.1"*, *"Table 2"*, and panel callouts (*"Fig 3.2A vs 3.2B"*) are preserved without loss.
+- **Sequential Numbered Citations:** In numbered referencing styles (`[1]`, `[2]`), the engine verifies that citations appear in strictly increasing numerical sequence.
+""")
+
+        st.markdown("---")
+        st.markdown("""
+#### 🧭 Global Document Context ("The North Star") & Dynamic Tail Stitching
+Large manuscripts (dissertations, review papers) are partitioned into chunks. Standard chunking leads to **chunk-boundary amnesia**—where Chunk 5 contradicts terminology introduced in Chunk 1.
+
+1. **The North Star:** Before processing any chunk, the engine scans the manuscript for the main title, overarching research hypotheses, established abbreviations, and primary headings. This macro-context is injected into the prompt of every chunk.
+2. **Dynamic Tail Stitching:** When Chunk 1 is rewritten, its actual newly generated concluding sentence is captured and fed into Chunk 2 as anchor context. This ensures that transitions between chunks are natural, fluid, and completely free of jarring seams or repeated transitional words.
+""")
+
+    # ------------------------------------------------------------- #
     # 5. Sidebar Guide
     # ------------------------------------------------------------- #
     elif help_section == "⚙️ Sidebar Controls & Parameters":
@@ -2513,6 +2560,7 @@ Selecting the **Conclusion** section enforces the 4-part academic sequence:
             st.markdown("""
 | Option | What It Does When Checked |
 | :--- | :--- |
+| **Keep Figures, Charts & Media In-Place** | Retains 100% of embedded images, vector graphics, molecular docking poses, and equations within the original `.docx` structure. |
 | **Humanize (Remove AI patterns)** | Strips synthetic transitional clichés (*"it is crucial to note"*, *"delve into"*), robotic preambles, and formulaic endings. |
 | **Academic Tone & Lexicon** | Elevates colloquial phrasing into scholarly vocabulary and disciplined academic register. |
 | **Anti-Plagiarism (N-Gram Breaking)** | Rearranges clauses and transposes words to defeat 4-to-7 word string matching in Turnitin / iThenticate. |
@@ -2614,6 +2662,16 @@ Selecting the **Conclusion** section enforces the 4-part academic sequence:
 2. Select **"Similarity & Overlap Inspector"**.
 3. Upload your reference papers in the Left Box and paste your draft in the Right Box.
 4. The system will pinpoint the exact 4-word sequences that caused the flag and provide suggested academic citations (**APA**, **IEEE**, or **Harvard**) to ensure complete academic integrity.
+""")
+
+        with st.expander("Q4: Will enhancing my document delete or compress my molecular docking figures or charts?", expanded=False):
+            st.markdown("""
+**No!** Writing Enhancer Pro features an **In-Place Media Preservation Engine**. When you upload a `.docx` file, all embedded vector drawings, high-resolution bitmaps, molecular docking poses, Ramachandran plots, and complex math equations are preserved byte-for-byte in their original OpenXML packaging.
+""")
+
+        with st.expander("Q5: How does the Scientific Data Fidelity Audit protect my empirical research?", expanded=False):
+            st.markdown("""
+Our deterministic integrity engine cross-checks all $p$-values, bond distances ($\\text{\\AA}$), binding free energies ($\\text{kcal/mol}$ or $\\text{kJ/mol}$), active-site amino acid codes (e.g. `Cys166`), figure callouts, and sequential numbered citation ordering. If any value is inadvertently altered during paraphrasing, the system raises a detailed alert in the **🔬 Scientific Data & Figure Integrity Audit Card**.
 """)
 
 
