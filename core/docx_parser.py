@@ -32,6 +32,12 @@ from docx.oxml.ns import qn, nsdecls
 
 # Academic section keyword mapping
 ACADEMIC_SECTION_MAP: Dict[str, List[str]] = {
+    "front_matter": [
+        "certificate", "certificate of approval", "declaration", "approval sheet",
+        "dedication", "acknowledgement", "acknowledgments", "acknowledgements",
+        "table of contents", "contents", "list of figures", "list of tables",
+        "list of abbreviations", "abbreviations", "acronyms", "nomenclature",
+    ],
     "abstract": ["abstract", "executive summary"],
     "introduction": ["introduction", "background", "motivation", "research problem"],
     "literature_review": ["literature review", "related work", "previous studies", "theoretical framework", "state of the art"],
@@ -39,6 +45,7 @@ ACADEMIC_SECTION_MAP: Dict[str, List[str]] = {
     "results": ["results", "findings", "experimental results", "empirical analysis", "evaluation"],
     "discussion": ["discussion", "implications", "comparative analysis", "limitations"],
     "conclusion": ["conclusion", "conclusions", "concluding remarks", "summary", "future work"],
+    "references": ["references", "bibliography", "works cited", "literature cited"],
 }
 
 # Regex patterns for figures, tables, and academic citations
@@ -332,7 +339,14 @@ def apply_smart_component_layout(
 
         # Normal body paragraphs
         if txt:
-            p.alignment = body_align
+            # Preserve original alignment if explicitly centered (title pages, certificate headers, etc.)
+            # or if it contains signature underscores ('____' or '----')
+            if p.alignment == WD_ALIGN_PARAGRAPH.CENTER or "____" in txt or "----" in txt:
+                pass  # retain author's centered / signature layout
+            elif len(txt.split()) < 12 and any(term in txt.lower() for term in ("department", "university", "faculty", "submitted by", "advisor", "supervisor", "dated", "session", "campus", "karachi", "certificate")):
+                pass  # retain cover / front-matter alignment
+            else:
+                p.alignment = body_align
             p.paragraph_format.line_spacing = line_spacing
             p.paragraph_format.space_after = Pt(6)
             for run in p.runs:
@@ -409,7 +423,8 @@ class DocxChunker:
         current_elements: List[Dict[str, Any]] = []
         current_word_count = 0
         chunk_index = 0
-        current_section = "general"
+        current_section = "front_matter"
+        main_body_started = False
         prev_tail_sentence = ""
         para_idx = 0
 
@@ -432,12 +447,22 @@ class DocxChunker:
                     level_match = re.search(r"heading\s*(\d+)", style_name, re.IGNORECASE)
                     if level_match:
                         heading_level = int(level_match.group(1))
-                    # Update active section if major heading
-                    if heading_level <= 2:
-                        detected_sec = detect_section_type(raw_text)
-                        if detected_sec != "general":
-                            current_section = detected_sec
 
+                detected_sec = detect_section_type(raw_text)
+                if not main_body_started:
+                    # Detect start of actual manuscript content (Chapter 1 / Abstract / Introduction)
+                    if detected_sec in ("abstract", "introduction", "methodology", "literature_review") or re.search(r"^(?:chapter\s+1\b|1\.?\s+[a-zA-Z]|introduction\b|abstract\b)", raw_text, re.IGNORECASE):
+                        main_body_started = True
+                        current_section = detected_sec if detected_sec not in ("general", "front_matter") else "introduction"
+                    else:
+                        current_section = "front_matter"
+                else:
+                    if detected_sec == "references" or re.search(r"^(?:references\b|bibliography\b|works cited\b|literature cited\b)", raw_text, re.IGNORECASE):
+                        current_section = "references"
+                    elif is_heading and heading_level <= 2 and detected_sec not in ("general", "front_matter"):
+                        current_section = detected_sec
+
+                is_protected = (current_section in ("front_matter", "references"))
                 is_list = style_name.lower().startswith("list") or raw_text.startswith(("- ", "* ", "• "))
                 is_caption = bool(FIGURE_CAPTION_RE.match(raw_text) or TABLE_CAPTION_RE.match(raw_text))
 
@@ -453,14 +478,19 @@ class DocxChunker:
                     "has_math": has_math,
                     "para_idx": para_idx,
                     "section": current_section,
+                    "is_protected": is_protected,
                     "word_count": word_count
                 }
                 para_idx += 1
 
-                # Boundary rule: If a major Heading appears and we have reached at least 200 words,
-                # or if adding this element exceeds max_words_per_chunk, push the current chunk.
+                # Boundary rule: If protection state changes (never mix front matter/references with body text)
+                # or if a major Heading appears and we have reached at least 200 words,
+                # or if adding this element exceeds max_words_per_chunk, push current chunk.
+                prev_is_protected = bool(current_elements and current_elements[0].get("is_protected"))
                 should_split = (
                     current_elements and (
+                        (prev_is_protected != is_protected) or
+                        (prev_is_protected and current_elements[0].get("section") != current_section) or
                         (current_word_count + word_count > self.max_words_per_chunk) or
                         (is_heading and heading_level <= 2 and current_word_count >= 200)
                     )
@@ -470,12 +500,14 @@ class DocxChunker:
                     chunk_text = self._assemble_elements_text(current_elements)
                     tail_sent = self._extract_tail_sentence(chunk_text)
                     chunk_sec = current_elements[0].get("section", "general") if current_elements else current_section
+                    is_chunk_prot = bool(current_elements and current_elements[0].get("is_protected")) or (chunk_sec in ("front_matter", "references"))
                     
                     chunks.append({
                         "chunk_id": chunk_index,
                         "text": chunk_text,
                         "word_count": current_word_count,
                         "section_type": chunk_sec,
+                        "is_protected": is_chunk_prot,
                         "elements": current_elements,
                         "para_indices": [el["para_idx"] for el in current_elements if "para_idx" in el],
                         "prev_context_tail": prev_tail_sentence,
@@ -498,6 +530,7 @@ class DocxChunker:
                     continue
 
                 table_word_count = len(md_table.split())
+                is_protected = (current_section in ("front_matter", "references"))
                 element = {
                     "type": "table",
                     "text": md_table,
@@ -505,20 +538,24 @@ class DocxChunker:
                     "level": 0,
                     "is_caption": False,
                     "section": current_section,
+                    "is_protected": is_protected,
                     "word_count": table_word_count,
                     "raw_table": block
                 }
 
-                if current_elements and (current_word_count + table_word_count > self.max_words_per_chunk):
+                prev_is_protected = bool(current_elements and current_elements[0].get("is_protected"))
+                if current_elements and ((prev_is_protected != is_protected) or (current_word_count + table_word_count > self.max_words_per_chunk)):
                     chunk_text = self._assemble_elements_text(current_elements)
                     tail_sent = self._extract_tail_sentence(chunk_text)
                     chunk_sec = current_elements[0].get("section", "general") if current_elements else current_section
+                    is_chunk_prot = bool(current_elements and current_elements[0].get("is_protected")) or (chunk_sec in ("front_matter", "references"))
                     
                     chunks.append({
                         "chunk_id": chunk_index,
                         "text": chunk_text,
                         "word_count": current_word_count,
                         "section_type": chunk_sec,
+                        "is_protected": is_chunk_prot,
                         "elements": current_elements,
                         "para_indices": [el["para_idx"] for el in current_elements if "para_idx" in el],
                         "prev_context_tail": prev_tail_sentence,
@@ -538,11 +575,13 @@ class DocxChunker:
         if current_elements:
             chunk_text = self._assemble_elements_text(current_elements)
             chunk_sec = current_elements[0].get("section", "general") if current_elements else current_section
+            is_chunk_prot = bool(current_elements and current_elements[0].get("is_protected")) or (chunk_sec in ("front_matter", "references"))
             chunks.append({
                 "chunk_id": chunk_index,
                 "text": chunk_text,
                 "word_count": current_word_count,
                 "section_type": chunk_sec,
+                "is_protected": is_chunk_prot,
                 "elements": current_elements,
                 "para_indices": [el["para_idx"] for el in current_elements if "para_idx" in el],
                 "prev_context_tail": prev_tail_sentence,
@@ -711,6 +750,10 @@ class DocxChunker:
         # 3. Update paragraphs in-place for each chunk
         for ch in humanized_chunks:
             if not isinstance(ch, dict):
+                continue
+
+            # Skip protected chunks (Front matter, TOC, figures lists, references) - leave 100% untouched
+            if ch.get("is_protected") or ch.get("skipped") or ch.get("section_type") in ("front_matter", "references"):
                 continue
 
             humanized_text = ch.get("humanized_text") or ch.get("text") or ""

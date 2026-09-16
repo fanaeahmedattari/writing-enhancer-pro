@@ -348,9 +348,24 @@ class LLMHumanizerEngine:
             chunk_id = chunk.get("chunk_id", idx)
             section_type = chunk.get("section_type", "general")
             original_text = chunk.get("text", "")
-
             # Dynamic Stitching: Use real newly generated tail from previous chunk if available
             prev_tail = last_generated_tail if (idx > 0 and last_generated_tail) else chunk.get("prev_context_tail", "")
+
+            # Skip rewriting for Front Matter, Declarations, TOC, Figures/Tables lists, and References
+            if chunk.get("is_protected") or section_type in ("front_matter", "references"):
+                results.append({
+                    "chunk_id": chunk_id,
+                    "original_text": original_text,
+                    "humanized_text": original_text,
+                    "section_type": section_type,
+                    "word_count": len(original_text.split()),
+                    "status": "success",
+                    "skipped": True,
+                    "is_protected": True,
+                    "para_indices": chunk.get("para_indices", []),
+                    "elements": chunk.get("elements", []),
+                })
+                continue
 
             # Report progress
             if progress_callback:
