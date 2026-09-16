@@ -56,6 +56,12 @@ RESIDUE_CODE_RE = re.compile(
     r"\b([A-Z][a-z]{2}\d{1,4}|PDB\s*[:\s]\s*[0-9][A-Za-z0-9]{3})\b"
 )
 
+# Publication years in citations (e.g. 1999, 2010, 2024)
+CITATION_YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
+
+# Numbered citation bracket references (e.g. [1], [15], [1, 2], [3-5])
+NUMBERED_CITATION_RE = re.compile(r"\[(\d+(?:\s*[-–,]\s*\d+)*)\]")
+
 
 def extract_scientific_entities(text: str) -> Dict[str, List[str]]:
     """
@@ -96,6 +102,14 @@ def extract_scientific_entities(text: str) -> Dict[str, List[str]]:
     fig_callouts = [re.sub(r"\s+", " ", m.strip()).title() for m in FIGURE_CALLOUT_RE.findall(text)]
     tbl_callouts = [re.sub(r"\s+", " ", m.strip()).title() for m in TABLE_CALLOUT_RE.findall(text)]
     residues = [m.strip() for m in RESIDUE_CODE_RE.findall(text)]
+    citation_years = [m.strip() for m in CITATION_YEAR_RE.findall(norm_text)]
+
+    numbered_cites = []
+    for match in NUMBERED_CITATION_RE.finditer(norm_text):
+        content = match.group(1)
+        d = re.search(r'\d+', content)
+        if d:
+            numbered_cites.append((int(d.group(0)), match.group(0)))
 
     return {
         "p_values": sorted(list(set(p_values))),
@@ -105,6 +119,8 @@ def extract_scientific_entities(text: str) -> Dict[str, List[str]]:
         "figure_callouts": sorted(list(set(fig_callouts))),
         "table_callouts": sorted(list(set(tbl_callouts))),
         "residues_and_pdb": sorted(list(set(residues))),
+        "citation_years": sorted(list(set(citation_years))),
+        "numbered_cites": numbered_cites,
     }
 
 
@@ -226,6 +242,34 @@ def audit_scientific_fidelity(original_text: str, humanized_text: str) -> Dict[s
                 "severity": "MEDIUM",
                 "detail": f"Exact value '{rn}' was altered during rewriting."
             })
+
+    # 7. Check Citation Years (Zero Year Drift)
+    for yr in orig_entities["citation_years"]:
+        total_checks += 1
+        if yr in trans_entities["citation_years"] or yr in humanized_text:
+            passed_checks += 1
+        else:
+            discrepancies.append({
+                "type": "Citation Year",
+                "original": yr,
+                "status": "Publication Year Omitted",
+                "severity": "CRITICAL",
+                "detail": f"Publication year '{yr}' was omitted or altered during rewriting."
+            })
+
+    # 8. Check Sequential Ordering of Numbered Citations (IEEE / Vancouver)
+    trans_num_cites = [num for num, _ in trans_entities["numbered_cites"]]
+    if len(trans_num_cites) >= 2:
+        for idx in range(len(trans_num_cites) - 1):
+            if trans_num_cites[idx] > trans_num_cites[idx + 1]:
+                total_checks += 1
+                discrepancies.append({
+                    "type": "Citation Sequence Inversion",
+                    "original": f"[{trans_num_cites[idx]}] before [{trans_num_cites[idx+1]}]",
+                    "status": "Out-of-Order Numbered Citation",
+                    "severity": "HIGH",
+                    "detail": f"Numbered citation [{trans_num_cites[idx]}] appears before [{trans_num_cites[idx+1]}], violating sequential academic ordering."
+                })
 
     # Calculate overall fidelity score
     if total_checks == 0:

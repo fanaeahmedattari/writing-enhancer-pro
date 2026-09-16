@@ -346,12 +346,13 @@ def get_user_rewrite_prompt(
     work_mode: str = "journal",
     english_tone: str = "academic",
     strict_mode: bool = False,
+    global_doc_context: str = "",
 ) -> str:
     """
     Generates tailored user rewrite prompt with section-specific grammatical directives,
     target word count / length constraints, user-selected transformation options,
     work mode (journal, thesis, etc.), English tone (US, UK, Indo-Pak, etc.),
-    strict academic mode, and Hook-and-Eye cross-chunk stitching context.
+    strict academic mode, Hook-and-Eye cross-chunk stitching context, and Global Document Context.
     """
     sec_guidelines = SECTION_SPECIFIC_GUIDELINES.get(section_type.lower(), SECTION_SPECIFIC_GUIDELINES["general"])
     
@@ -407,6 +408,23 @@ def get_user_rewrite_prompt(
     if opts.get("plagiarism_remover", True):
         directives.append("- **Scientific Paraphrasing & N-Gram Disruption:** Apply the 'Read and Shield' protocol to rebuild sentences completely from scratch. Invert syntactic clauses, shift parts of speech, and strictly break all 4+ word consecutive matching sequences from the source text while preserving 100% of factual citations and numerical data.")
 
+    # Inviolable Citation Sequencing & Bibliographic Veracity
+    directives.append(
+        "- **Citation Sequencing & Bibliographic Veracity:**\n"
+        "  * Numbered Citations ([1], [2], [3]): Maintain strict ascending sequential order. Never invert clauses in a manner that causes a higher citation number to appear before a lower citation number.\n"
+        "  * Author-Year Citations: Retain exact author surnames and publication years verbatim (e.g., 'Shafqat et al., 2010'). Never omit, swap, or hallucinate citation markers."
+    )
+
+    # Global Manuscript Macro-Context Directive (The North Star)
+    global_directive = ""
+    if global_doc_context:
+        clean_global = global_doc_context.strip()
+        global_directive = f"""
+### GLOBAL MANUSCRIPT CONTEXT (THE NORTH STAR):
+{clean_global}
+(Maintain consistent technical nomenclature, respect already-defined acronyms, and preserve overarching research objectives throughout).
+"""
+
     # Hook and Eye cross-chunk stitching context
     context_directive = ""
     if prev_context_tail and opts.get("flow_stitching", True):
@@ -428,6 +446,7 @@ Ensure the opening sentence of this new chunk links naturally to this thought us
 
 ### ACTIVE DIRECTIVES:
 {directives_str}
+{global_directive}
 {context_directive}
 ### INVIOLABLE FIDELITY MANDATE:
 1. Preserve 100% of facts, experimental data, numbers, dates, proper nouns, and citations verbatim.

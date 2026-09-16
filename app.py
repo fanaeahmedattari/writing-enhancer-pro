@@ -1138,6 +1138,9 @@ with tab_doc:
                             pct = current / total
                             progress_bar.progress(pct, text=message)
 
+                        # Extract Global Document Context (The North Star)
+                        global_context = chunker.extract_global_document_context(input_path)
+
                         results = engine.process_all_chunks(
                             chunks=chunks,
                             aggressive=True if "Paraphraser" in doc_proc_mode else aggressive_mode,
@@ -1146,6 +1149,7 @@ with tab_doc:
                             work_mode=opt_work_mode,
                             english_tone=opt_english_tone,
                             strict_mode=opt_strict_mode,
+                            global_doc_context=global_context,
                             progress_callback=doc_progress,
                             inter_chunk_delay=1.0,
                         )

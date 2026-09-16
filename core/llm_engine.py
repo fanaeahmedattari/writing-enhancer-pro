@@ -231,6 +231,7 @@ class LLMHumanizerEngine:
         work_mode: str = "journal",
         english_tone: str = "academic",
         strict_mode: bool = False,
+        global_doc_context: str = "",
         retries: int = 3,
     ) -> str:
         """
@@ -263,6 +264,7 @@ class LLMHumanizerEngine:
             work_mode=work_mode,
             english_tone=english_tone,
             strict_mode=strict_mode,
+            global_doc_context=global_doc_context,
         )
 
         # --- Step 3: API call with retry ---
@@ -293,6 +295,17 @@ class LLMHumanizerEngine:
     # Batch Processing (All Chunks)
     # ------------------------------------------------------------------ #
 
+    @staticmethod
+    def _extract_tail_sentence(text: str) -> str:
+        clean = text.strip()
+        if not clean:
+            return ""
+        sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', clean) if s.strip()]
+        for s in reversed(sentences):
+            if len(s.split()) >= 4:
+                return s
+        return sentences[-1] if sentences else ""
+
     def process_all_chunks(
         self,
         chunks: List[Dict[str, Any]],
@@ -304,21 +317,26 @@ class LLMHumanizerEngine:
         work_mode: str = "journal",
         english_tone: str = "academic",
         strict_mode: bool = False,
+        global_doc_context: Optional[str] = None,
         progress_callback: Optional[Callable[[int, int, str], None]] = None,
         inter_chunk_delay: float = 0.5,
     ) -> List[Dict[str, Any]]:
         """
         Iterates over all document chunks, processes them sequentially with
-        context stitching and reports progress to the Streamlit frontend.
+        dynamic context stitching (linking to the actual newly generated sentences),
+        global manuscript context, and reports progress to the Streamlit frontend.
         """
         results: List[Dict[str, Any]] = []
         total_chunks = len(chunks)
+        last_generated_tail = ""
 
         for idx, chunk in enumerate(chunks):
             chunk_id = chunk.get("chunk_id", idx)
             section_type = chunk.get("section_type", "general")
             original_text = chunk.get("text", "")
-            prev_tail = chunk.get("prev_context_tail", "")
+
+            # Dynamic Stitching: Use real newly generated tail from previous chunk if available
+            prev_tail = last_generated_tail if (idx > 0 and last_generated_tail) else chunk.get("prev_context_tail", "")
 
             # Report progress
             if progress_callback:
@@ -352,12 +370,16 @@ class LLMHumanizerEngine:
                     work_mode=work_mode,
                     english_tone=english_tone,
                     strict_mode=strict_mode,
+                    global_doc_context=global_doc_context or "",
                 )
                 status = "success"
+                # Update stitching tail for next chunk with the REAL newly generated sentence
+                last_generated_tail = self._extract_tail_sentence(humanized_text)
             except Exception as e:
                 logger.error(f"Chunk {chunk_id} failed: {e}")
                 humanized_text = original_text  # Fallback to original
                 status = f"error: {str(e)}"
+                last_generated_tail = self._extract_tail_sentence(original_text)
 
             results.append({
                 "chunk_id": chunk_id,
@@ -366,6 +388,8 @@ class LLMHumanizerEngine:
                 "section_type": section_type,
                 "word_count": len(humanized_text.split()),
                 "status": status,
+                "para_indices": chunk.get("para_indices", []),
+                "elements": chunk.get("elements", []),
             })
 
             # Rate-limit delay between chunks (skip after last chunk)
