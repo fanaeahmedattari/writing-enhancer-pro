@@ -115,6 +115,234 @@ def format_table_to_markdown(table: Table) -> str:
     return "\n".join(md_lines)
 
 
+def apply_academic_table_styling(
+    tbl,
+    border_style: str = "APA",
+    typography_preset: str = "Times New Roman",
+) -> None:
+    """
+    Applies publication-grade table borders, margins, and pagination controls.
+    - 'APA': 3 horizontal lines (top, header bottom, table bottom), 0 vertical lines.
+    - 'GRID': Clean, subtle 0.5pt gray borders around each cell, soft shaded header.
+    - 'MINIMALIST': Clean header underline and subtle outer bottom rule.
+    """
+    try:
+        tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+        tblPr = tbl._tbl.tblPr
+
+        # 1. Cell Margins / Padding (120 dxa top/bottom = 6pt, 160 dxa left/right = 8pt)
+        for existing_mar in tblPr.findall(qn('w:tblCellMar')):
+            tblPr.remove(existing_mar)
+
+        cellMar = parse_xml(r'''
+            <w:tblCellMar %s>
+                <w:top w:w="120" w:type="dxa"/>
+                <w:left w:w="160" w:type="dxa"/>
+                <w:bottom w:w="120" w:type="dxa"/>
+                <w:right w:w="160" w:type="dxa"/>
+            </w:tblCellMar>
+        ''' % nsdecls('w'))
+        tblPr.append(cellMar)
+
+        # 2. Border Rules
+        clean_style = border_style.strip().upper()
+        for existing_b in tblPr.findall(qn('w:tblBorders')):
+            tblPr.remove(existing_b)
+
+        if "GRID" in clean_style:
+            tblBorders = parse_xml(r'''
+                <w:tblBorders %s>
+                    <w:top w:val="single" w:sz="4" w:space="0" w:color="B0BEC5"/>
+                    <w:left w:val="single" w:sz="4" w:space="0" w:color="B0BEC5"/>
+                    <w:bottom w:val="single" w:sz="4" w:space="0" w:color="B0BEC5"/>
+                    <w:right w:val="single" w:sz="4" w:space="0" w:color="B0BEC5"/>
+                    <w:insideH w:val="single" w:sz="4" w:space="0" w:color="CFD8DC"/>
+                    <w:insideV w:val="single" w:sz="4" w:space="0" w:color="CFD8DC"/>
+                </w:tblBorders>
+            ''' % nsdecls('w'))
+        elif "MINIMALIST" in clean_style:
+            tblBorders = parse_xml(r'''
+                <w:tblBorders %s>
+                    <w:top w:val="single" w:sz="4" w:space="0" w:color="757575"/>
+                    <w:left w:val="none"/>
+                    <w:bottom w:val="single" w:sz="4" w:space="0" w:color="757575"/>
+                    <w:right w:val="none"/>
+                    <w:insideH w:val="none"/>
+                    <w:insideV w:val="none"/>
+                </w:tblBorders>
+            ''' % nsdecls('w'))
+        else:  # Default: APA 7th Edition Standard
+            tblBorders = parse_xml(r'''
+                <w:tblBorders %s>
+                    <w:top w:val="single" w:sz="8" w:space="0" w:color="222222"/>
+                    <w:left w:val="none"/>
+                    <w:bottom w:val="single" w:sz="8" w:space="0" w:color="222222"/>
+                    <w:right w:val="none"/>
+                    <w:insideH w:val="none"/>
+                    <w:insideV w:val="none"/>
+                </w:tblBorders>
+            ''' % nsdecls('w'))
+
+        tblPr.append(tblBorders)
+
+        # 3. Header Row & Pagination Controls (tblHeader and cantSplit)
+        if tbl.rows:
+            header_row = tbl.rows[0]
+            header_trPr = header_row._tr.get_or_add_trPr()
+            if not header_trPr.findall(qn('w:tblHeader')):
+                header_trPr.append(parse_xml(r'<w:tblHeader %s/>' % nsdecls('w')))
+            if not header_trPr.findall(qn('w:cantSplit')):
+                header_trPr.append(parse_xml(r'<w:cantSplit %s/>' % nsdecls('w')))
+
+            # Style header row cells
+            for cell in header_row.cells:
+                tcPr = cell._tc.get_or_add_tcPr()
+                for existing_tc_b in tcPr.findall(qn('w:tcBorders')):
+                    tcPr.remove(existing_tc_b)
+                tcBorders = parse_xml(r'''
+                    <w:tcBorders %s>
+                        <w:bottom w:val="single" w:sz="8" w:space="0" w:color="222222"/>
+                    </w:tcBorders>
+                ''' % nsdecls('w'))
+                tcPr.append(tcBorders)
+
+                if "GRID" in clean_style:
+                    shd = parse_xml(r'<w:shd %s w:fill="F0F4F8"/>' % nsdecls('w'))
+                    tcPr.append(shd)
+
+                for p in cell.paragraphs:
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    for r in p.runs:
+                        r.font.name = typography_preset
+                        r.font.bold = True
+                        r.font.size = Pt(10.5)
+
+            # Prevent middle/bottom rows from splitting across page breaks
+            for row in tbl.rows[1:]:
+                row_trPr = row._tr.get_or_add_trPr()
+                if not row_trPr.findall(qn('w:cantSplit')):
+                    row_trPr.append(parse_xml(r'<w:cantSplit %s/>' % nsdecls('w')))
+                for cell in row.cells:
+                    for p in cell.paragraphs:
+                        for r in p.runs:
+                            r.font.name = typography_preset
+                            r.font.size = Pt(10)
+
+    except Exception:
+        pass
+
+
+def apply_smart_component_layout(
+    doc: DocxDocument,
+    layout_mode: str = "SMART_ACADEMIC",
+    table_border_style: str = "APA",
+    center_figures: bool = True,
+    typography_preset: str = "Times New Roman",
+    line_spacing: float = 1.5,
+    base_alignment: str = "JUSTIFY",
+) -> None:
+    """
+    Applies expert academic typesetting across all elements:
+    - Figures / Images: Centered, keep_with_next=True.
+    - Figure Captions: Centered, 10pt, italic/bold prefix.
+    - Table Captions: Left-aligned/Centered, bold table number, keep_with_next=True.
+    - Tables: Centered on page, professional academic borders, row pagination.
+    - Headings: Chapter titles centered/left, section subheadings left-aligned, keep_with_next=True.
+    - Equations: Centered.
+    - Body text: Justified (or base_alignment).
+    """
+    align_map = {
+        "JUSTIFY": WD_ALIGN_PARAGRAPH.JUSTIFY,
+        "JUSTIFIED": WD_ALIGN_PARAGRAPH.JUSTIFY,
+        "LEFT": WD_ALIGN_PARAGRAPH.LEFT,
+        "CENTER": WD_ALIGN_PARAGRAPH.CENTER,
+        "RIGHT": WD_ALIGN_PARAGRAPH.RIGHT,
+    }
+    clean_base = base_alignment.strip().upper().split()[0]
+    body_align = align_map.get(clean_base, WD_ALIGN_PARAGRAPH.JUSTIFY)
+    is_smart = (layout_mode.strip().upper().startswith("SMART"))
+
+    for p in doc.paragraphs:
+        txt = p.text.strip()
+        has_drawing = bool(p._element.xpath('.//w:drawing') or p._element.xpath('.//w:pict'))
+        has_math = bool(p._element.xpath('.//m:oMath') or p._element.xpath('.//m:oMathPara'))
+        style_name = p.style.name.lower() if p.style else ""
+
+        if has_drawing:
+            if center_figures or is_smart:
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_before = Pt(12)
+            p.paragraph_format.space_after = Pt(4)
+            p.paragraph_format.keep_with_next = True
+            continue
+
+        if has_math:
+            if is_smart:
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_before = Pt(6)
+            p.paragraph_format.space_after = Pt(6)
+            continue
+
+        if FIGURE_CAPTION_RE.match(txt):
+            if center_figures or is_smart:
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(14)
+            p.paragraph_format.keep_with_next = False
+            for run in p.runs:
+                run.font.name = typography_preset
+                run.font.size = Pt(10)
+            continue
+
+        if TABLE_CAPTION_RE.match(txt):
+            if is_smart:
+                p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(14)
+            p.paragraph_format.space_after = Pt(4)
+            p.paragraph_format.keep_with_next = True
+            for run in p.runs:
+                run.font.name = typography_preset
+                run.font.size = Pt(10.5)
+            continue
+
+        if txt == "Table of Contents":
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            continue
+
+        if re.search(r'\.{3,}\s*Page\s+\d+', txt):
+            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            continue
+
+        is_heading = style_name.startswith("heading") or style_name == "title" or txt.startswith("#")
+        if is_heading:
+            if is_smart:
+                if "title" in style_name or "heading 1" in style_name or txt.lower().startswith("chapter") or txt.startswith("# "):
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                else:
+                    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            else:
+                p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.keep_with_next = True
+            p.paragraph_format.space_before = Pt(16)
+            p.paragraph_format.space_after = Pt(6)
+            for run in p.runs:
+                run.font.name = typography_preset
+                run.font.bold = True
+            continue
+
+        # Normal body paragraphs
+        if txt:
+            p.alignment = body_align
+            p.paragraph_format.line_spacing = line_spacing
+            p.paragraph_format.space_after = Pt(6)
+            for run in p.runs:
+                run.font.name = typography_preset
+
+    # Format all tables
+    for tbl in doc.tables:
+        apply_academic_table_styling(tbl, border_style=table_border_style, typography_preset=typography_preset)
+
+
 class DocxChunker:
     """
     Parses .docx files into manageable chunks while preserving structural 
@@ -429,11 +657,14 @@ class DocxChunker:
         include_title_page: bool = False,
         title_page_data: Optional[Dict[str, str]] = None,
         include_toc: bool = False,
+        layout_mode: str = "SMART_ACADEMIC",
+        table_border_style: str = "APA",
+        center_figures: bool = True,
     ) -> str:
         """
         Reconstructs the enhanced document IN-PLACE inside the original .docx package,
         preserving 100% of all embedded drawings, figures, images, math equations, tables,
-        and header/footer structures.
+        and header/footer structures with intelligent component-aware layout.
         """
         if not os.path.exists(original_docx_path):
             raise FileNotFoundError(f"Original file not found for media preservation: {original_docx_path}")
@@ -535,6 +766,17 @@ class DocxChunker:
                             run.font.name = typography_preset
                         curr_p = new_p_obj
 
+        # 4. Apply Smart Component Layout & Academic Table Styling
+        apply_smart_component_layout(
+            doc=doc,
+            layout_mode=layout_mode,
+            table_border_style=table_border_style,
+            center_figures=center_figures,
+            typography_preset=typography_preset,
+            line_spacing=line_spacing,
+            base_alignment=alignment,
+        )
+
         self.strip_document_metadata(doc)
         doc.save(output_path)
         return output_path
@@ -553,6 +795,9 @@ class DocxChunker:
         line_spacing: float = 1.5,
         running_head: str = "Writing Enhancer Pro — Academic Manuscript",
         alignment: str = "JUSTIFY",
+        layout_mode: str = "SMART_ACADEMIC",
+        table_border_style: str = "APA",
+        center_figures: bool = True,
     ) -> str:
         """
         Reconstructs a publication-ready .docx document.
@@ -568,8 +813,9 @@ class DocxChunker:
                 line_spacing=line_spacing,
                 alignment=alignment,
                 include_title_page=include_title_page,
-                title_page_data=title_page_data,
-                include_toc=include_toc,
+                layout_mode=layout_mode,
+                table_border_style=table_border_style,
+                center_figures=center_figures,
             )
 
         new_doc = docx.Document()
@@ -826,7 +1072,7 @@ class DocxChunker:
 
             # Markdown table
             if clean_text.startswith("|") and "\n|" in clean_text:
-                self._add_markdown_table_to_doc(new_doc, clean_text, typography_preset)
+                self._add_markdown_table_to_doc(new_doc, clean_text, typography_preset, border_style=table_border_style)
                 continue
 
             # Figure caption styling (centered, italic, below figure)
@@ -880,6 +1126,17 @@ class DocxChunker:
             p.paragraph_format.line_spacing = line_spacing
             p.paragraph_format.space_after = Pt(6)
 
+        # Apply Smart Component Layout (headings, tables, captions, equations)
+        apply_smart_component_layout(
+            doc=new_doc,
+            layout_mode=layout_mode,
+            table_border_style=table_border_style,
+            center_figures=center_figures,
+            typography_preset=typography_preset,
+            line_spacing=line_spacing,
+            base_alignment=alignment,
+        )
+
         # Layer C: Strip container metadata to defeat provenance inspection
         self.strip_document_metadata(new_doc)
 
@@ -927,7 +1184,12 @@ class DocxChunker:
         return sents[-1] if sents else ""
 
     @staticmethod
-    def _add_markdown_table_to_doc(doc: DocxDocument, md_table_text: str, typography_preset: str = "Times New Roman") -> None:
+    def _add_markdown_table_to_doc(
+        doc: DocxDocument,
+        md_table_text: str,
+        typography_preset: str = "Times New Roman",
+        border_style: str = "APA",
+    ) -> None:
         lines = [l.strip() for l in md_table_text.strip().split("\n") if l.strip().startswith("|")]
         if len(lines) < 2:
             doc.add_paragraph(md_table_text)
@@ -950,7 +1212,6 @@ class DocxChunker:
 
         tbl = doc.add_table(rows=num_rows, cols=num_cols)
         tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
-        tbl.style = "Table Grid"
 
         for r_idx, row_data in enumerate(parsed_rows):
             for c_idx, cell_value in enumerate(row_data):
@@ -958,23 +1219,8 @@ class DocxChunker:
                     cell = tbl.cell(r_idx, c_idx)
                     cell.text = cell_value
 
-                    # Header Row: shaded background and bold font
-                    if r_idx == 0:
-                        try:
-                            shd = parse_xml(r'<w:shd {} w:fill="E8EEF5"/>'.format(nsdecls('w')))
-                            cell._tc.get_or_add_tcPr().append(shd)
-                        except Exception:
-                            pass
-                        for paragraph in cell.paragraphs:
-                            for run in paragraph.runs:
-                                run.font.name = typography_preset
-                                run.font.bold = True
-                                run.font.size = Pt(10.5)
-                    else:
-                        for paragraph in cell.paragraphs:
-                            for run in paragraph.runs:
-                                run.font.name = typography_preset
-                                run.font.size = Pt(10)
+        # Apply publication-grade academic borders, margins, and header repeating
+        apply_academic_table_styling(tbl, border_style=border_style, typography_preset=typography_preset)
 
 
 def analyze_document_structure(text_or_chunks: Union[str, List[str], List[Dict[str, Any]]]) -> Dict[str, Any]:

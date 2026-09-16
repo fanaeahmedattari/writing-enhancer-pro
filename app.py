@@ -297,7 +297,7 @@ if opt_title_page:
 opt_preserve_media = st.sidebar.checkbox(
     "🖼️ Preserve Original Figures & Media (In-Place)",
     value=True,
-    help="Default & Recommended for Theses/Journals: In-place document reassembly preserves 100% of all embedded images, molecular dockings, Western blots, charts, and equations."
+    help="Default & Recommended for Theses/Journals: In-place document reassembly preserves 100% of all embedded figures, experimental charts, microscopy images, technical diagrams, and mathematical equations."
 )
 
 opt_toc = st.sidebar.checkbox(
@@ -309,13 +309,54 @@ opt_toc = st.sidebar.checkbox(
 opt_margins = st.sidebar.toggle("📄 1-Inch Standard Margins", value=True)
 opt_headers = st.sidebar.toggle("🏷️ Running Header & Page Numbers", value=True)
 
-opt_alignment = st.sidebar.selectbox(
-    "Paragraph Alignment",
-    options=["Justified (Academic Standard)", "Left-aligned", "Centered", "Right-aligned"],
-    index=0,
-    help="Full justification (both margins aligned) is mandatory in peer-reviewed journals, university theses, and academic assignments."
-)
-clean_alignment = opt_alignment.split()[0].upper()
+with st.sidebar.expander("📐 Academic Typesetting & Layout Master", expanded=True):
+    opt_layout_strategy = st.selectbox(
+        "Layout & Alignment Mode",
+        options=[
+            "🎓 Smart Academic Layout (Recommended)",
+            "📄 Justified Body Text (Standard)",
+            "📄 Left-Aligned Throughout",
+        ],
+        index=0,
+        help=(
+            "Smart Academic Layout applies publication-grade typesetting: "
+            "Headings are positioned correctly, body paragraphs are cleanly justified, "
+            "figures & charts are centered, figure captions are centered underneath, "
+            "table captions are placed above tables, and equations are centered."
+        ),
+    )
+    if "Smart" in opt_layout_strategy:
+        clean_layout_mode = "SMART"
+        clean_alignment = "JUSTIFY"
+    elif "Justified" in opt_layout_strategy:
+        clean_layout_mode = "JUSTIFIED"
+        clean_alignment = "JUSTIFY"
+    else:
+        clean_layout_mode = "LEFT"
+        clean_alignment = "LEFT"
+
+    opt_table_border = st.selectbox(
+        "Table Border & Design Standard",
+        options=[
+            "🏛️ APA 7th Standard (Top & bottom rules, no vertical lines)",
+            "🔲 Clean Academic Grid (Subtle borders & shaded header)",
+            "📄 Minimalist (Understated header & bottom border)",
+        ],
+        index=0,
+        help="APA 7th standard uses 3 formal horizontal rules and eliminates harsh vertical borders, meeting university thesis & high-impact journal standards.",
+    )
+    if "APA" in opt_table_border:
+        clean_table_border = "APA"
+    elif "Grid" in opt_table_border:
+        clean_table_border = "GRID"
+    else:
+        clean_table_border = "MINIMALIST"
+
+    opt_center_figures = st.checkbox(
+        "🎯 Center Figures, Charts & Visual Media",
+        value=True,
+        help="Ensures all embedded experimental plots, microscopy images, diagrams, and figures are perfectly centered on the page.",
+    )
 
 opt_typography = st.sidebar.selectbox(
     "Typography Standard",
@@ -419,6 +460,9 @@ def text_to_docx_bytes(
     include_toc: bool = True,
     running_head: str = "Writing Enhancer Pro — Academic Manuscript",
     alignment: str = "JUSTIFY",
+    layout_mode: str = "SMART",
+    table_border_style: str = "APA",
+    center_figures: bool = True,
 ) -> bytes:
     """Convert text to a beautifully styled .docx with 1-inch margins, title page, academic typography, full justification, and page numbers."""
     import tempfile
@@ -439,6 +483,9 @@ def text_to_docx_bytes(
             line_spacing=line_spacing,
             running_head=running_head,
             alignment=alignment,
+            layout_mode=layout_mode,
+            table_border_style=table_border_style,
+            center_figures=center_figures,
         )
         with open(tmp_path, "rb") as f:
             data = f.read()
@@ -458,10 +505,13 @@ def text_to_pdf_bytes(
     include_toc: bool = True,
     running_head: str = "Writing Enhancer Pro — Academic Manuscript",
     alignment: str = "JUSTIFY",
+    layout_mode: str = "SMART",
+    table_border_style: str = "APA",
+    center_figures: bool = True,
 ) -> bytes:
     """Compile text into a publication-ready PDF with full justification, 1-inch margins, title page, TOC, and running headers/footers."""
     from reportlab.lib.pagesizes import letter
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT, TA_CENTER, TA_RIGHT
@@ -489,6 +539,11 @@ def text_to_pdf_bytes(
     )
     styles = getSampleStyleSheet()
 
+    # Determine component alignments based on layout_mode
+    is_smart = (layout_mode.upper() == "SMART")
+    body_align = TA_JUSTIFY if (is_smart or clean_align in ("JUSTIFY", "JUSTIFIED")) else TA_LEFT
+    h1_align = TA_CENTER if is_smart else TA_LEFT
+
     body_style = ParagraphStyle(
         "CustomBody",
         parent=styles["Normal"],
@@ -497,7 +552,7 @@ def text_to_pdf_bytes(
         leading=16,
         textColor=colors.HexColor("#212121"),
         spaceAfter=10,
-        alignment=target_pdf_align,
+        alignment=body_align,
     )
     fig_caption_style = ParagraphStyle(
         "FigCaption",
@@ -506,7 +561,7 @@ def text_to_pdf_bytes(
         fontSize=9.5,
         leading=14,
         textColor=colors.HexColor("#555555"),
-        alignment=1,  # Centered
+        alignment=TA_CENTER if (is_smart or center_figures) else TA_LEFT,
         spaceBefore=4,
         spaceAfter=12,
     )
@@ -517,6 +572,7 @@ def text_to_pdf_bytes(
         fontSize=10.5,
         leading=15,
         textColor=colors.HexColor("#1a237e"),
+        alignment=TA_LEFT,
         spaceBefore=12,
         spaceAfter=4,
         keepWithNext=True,
@@ -529,7 +585,7 @@ def text_to_pdf_bytes(
         leading=22,
         textColor=colors.HexColor("#1a237e"),
         spaceAfter=14,
-        alignment=0,
+        alignment=h1_align,
     )
     heading_style = ParagraphStyle(
         "CustomHeading",
@@ -541,6 +597,19 @@ def text_to_pdf_bytes(
         spaceBefore=14,
         spaceAfter=6,
         keepWithNext=True,
+        alignment=h1_align,
+    )
+    heading2_style = ParagraphStyle(
+        "CustomHeading2",
+        parent=styles["Heading2"],
+        fontName="Helvetica-Bold",
+        fontSize=12,
+        leading=16,
+        textColor=colors.HexColor("#283593"),
+        spaceBefore=12,
+        spaceAfter=4,
+        keepWithNext=True,
+        alignment=TA_LEFT,
     )
     toc_title_style = ParagraphStyle(
         "TOCTitle",
@@ -550,7 +619,7 @@ def text_to_pdf_bytes(
         leading=20,
         textColor=colors.HexColor("#1a237e"),
         spaceAfter=12,
-        alignment=1,  # Centered
+        alignment=TA_CENTER,
     )
     toc_entry_style = ParagraphStyle(
         "TOCEntry",
@@ -624,20 +693,79 @@ def text_to_pdf_bytes(
 
         story.append(PageBreak())
 
+    # Helper to check for markdown tables
+    def is_markdown_table(blk: str) -> bool:
+        lines = [l.strip() for l in blk.split("\n") if l.strip()]
+        return len(lines) >= 2 and all(l.startswith("|") and l.endswith("|") for l in lines)
+
     # Main content blocks
     for block in blocks:
         if block.startswith("# "):
             story.append(Paragraph(block[2:].strip(), heading_style))
         elif block.startswith("## "):
-            story.append(Paragraph(block[3:].strip(), heading_style))
+            story.append(Paragraph(block[3:].strip(), heading2_style))
         elif block.startswith("### "):
-            story.append(Paragraph(block[4:].strip(), heading_style))
+            story.append(Paragraph(block[4:].strip(), heading2_style))
         elif block.startswith("#### "):
-            story.append(Paragraph(block[5:].strip(), heading_style))
+            story.append(Paragraph(block[5:].strip(), heading2_style))
         elif FIGURE_CAPTION_RE.match(block):
             story.append(Paragraph(block.strip(), fig_caption_style))
         elif TABLE_CAPTION_RE.match(block):
             story.append(Paragraph(block.strip(), tbl_caption_style))
+        elif is_markdown_table(block):
+            lines = [l.strip() for l in block.split("\n") if l.strip()]
+            raw_rows = []
+            for l in lines:
+                if re.match(r"^\|[\s\-:|]+\|$", l):
+                    continue
+                cells = [c.strip() for c in l.strip("|").split("|")]
+                raw_rows.append(cells)
+            if raw_rows:
+                tbl_flowable_data = []
+                th_cell_style = ParagraphStyle("THCell", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=9.5, leading=13, textColor=colors.HexColor("#1a237e" if table_border_style == "APA" else "#212121"))
+                td_cell_style = ParagraphStyle("TDCell", parent=styles["Normal"], fontName="Helvetica", fontSize=9, leading=12, textColor=colors.HexColor("#212121"))
+                for row_idx, row in enumerate(raw_rows):
+                    row_cells = []
+                    for c in row:
+                        style_to_use = th_cell_style if row_idx == 0 else td_cell_style
+                        safe_c = c.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                        row_cells.append(Paragraph(safe_c, style_to_use))
+                    tbl_flowable_data.append(row_cells)
+
+                pdf_table = Table(tbl_flowable_data, hAlign="CENTER")
+
+                # Apply table border style
+                if table_border_style == "APA":
+                    pdf_table.setStyle(TableStyle([
+                        ("LINEABOVE", (0, 0), (-1, 0), 1.0, colors.HexColor("#1a237e")),
+                        ("LINEBELOW", (0, 0), (-1, 0), 0.75, colors.HexColor("#1a237e")),
+                        ("LINEBELOW", (0, -1), (-1, -1), 1.0, colors.HexColor("#1a237e")),
+                        ("TOPPADDING", (0, 0), (-1, -1), 4),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                    ]))
+                elif table_border_style == "GRID":
+                    pdf_table.setStyle(TableStyle([
+                        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#B0BEC5")),
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F0F4F8")),
+                        ("TOPPADDING", (0, 0), (-1, -1), 4),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                    ]))
+                else:  # MINIMALIST
+                    pdf_table.setStyle(TableStyle([
+                        ("LINEBELOW", (0, 0), (-1, 0), 0.75, colors.HexColor("#757575")),
+                        ("LINEBELOW", (0, -1), (-1, -1), 0.5, colors.HexColor("#B0BEC5")),
+                        ("TOPPADDING", (0, 0), (-1, -1), 4),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                    ]))
+                story.append(Spacer(1, 4))
+                story.append(pdf_table)
+                story.append(Spacer(1, 8))
         else:
             safe = block.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br/>")
             story.append(Paragraph(safe, body_style))
@@ -1067,7 +1195,7 @@ with tab_doc:
                     struct_info = analyze_document_structure(full_text)
                     st.write(f"Detected {struct_info['heading_count']} headings, {struct_info['figure_count']} figure captions, {struct_info['table_caption_count']} table captions.")
 
-                    st.write(f"Step 2: 📐 Applying '{opt_alignment}' paragraph alignment, 1.0-inch margins, and typography...")
+                    st.write(f"Step 2: 📐 Applying '{clean_layout_mode}' Academic Layout, {clean_table_border} table borders, and typography...")
                     output_fmt_docx = input_path.replace(".docx", "_formatted.docx")
                     chunker.reassemble_docx(
                         original_docx_path=input_path,
@@ -1081,6 +1209,9 @@ with tab_doc:
                         margins_inches=1.0 if opt_margins else 0.75,
                         line_spacing=opt_line_spacing,
                         alignment=clean_alignment,
+                        layout_mode=clean_layout_mode,
+                        table_border_style=clean_table_border,
+                        center_figures=opt_center_figures,
                     )
                     with open(output_fmt_docx, "rb") as f:
                         fmt_docx_data = f.read()
@@ -1093,6 +1224,9 @@ with tab_doc:
                         title_page_data=title_page_dict,
                         include_toc=opt_toc,
                         alignment=clean_alignment,
+                        layout_mode=clean_layout_mode,
+                        table_border_style=clean_table_border,
+                        center_figures=opt_center_figures,
                     )
 
                     st.write("Step 4: 🛡️ Sanitizing container metadata and finalizing...")
@@ -1194,6 +1328,9 @@ with tab_doc:
                             margins_inches=1.0 if opt_margins else 0.75,
                             line_spacing=opt_line_spacing,
                             alignment=clean_alignment,
+                            layout_mode=clean_layout_mode,
+                            table_border_style=clean_table_border,
+                            center_figures=opt_center_figures,
                         )
                         with open(output_path, "rb") as f:
                             docx_bytes = f.read()
@@ -1209,6 +1346,9 @@ with tab_doc:
                             title_page_data=title_page_dict,
                             include_toc=opt_toc,
                             alignment=clean_alignment,
+                            layout_mode=clean_layout_mode,
+                            table_border_style=clean_table_border,
+                            center_figures=opt_center_figures,
                         )
 
                         import re as _re
@@ -1629,6 +1769,9 @@ with tab_text:
                     title_page_data=title_page_dict,
                     include_toc=opt_toc,
                     alignment=clean_alignment,
+                    layout_mode=clean_layout_mode,
+                    table_border_style=clean_table_border,
+                    center_figures=opt_center_figures,
                 )
                 pdf_bytes_t2 = text_to_pdf_bytes(
                     humanized,
@@ -1637,6 +1780,9 @@ with tab_text:
                     title_page_data=title_page_dict,
                     include_toc=opt_toc,
                     alignment=clean_alignment,
+                    layout_mode=clean_layout_mode,
+                    table_border_style=clean_table_border,
+                    center_figures=opt_center_figures,
                 )
                 import re as _re
                 plain_text_t2 = _re.sub(r"^#{1,6}\s+", "", humanized, flags=_re.MULTILINE)
@@ -1865,6 +2011,9 @@ with tab_plagiarism:
                         title_page_data=title_page_dict,
                         include_toc=opt_toc,
                         alignment=clean_alignment,
+                        layout_mode=clean_layout_mode,
+                        table_border_style=clean_table_border,
+                        center_figures=opt_center_figures,
                     )
                     pdf_bytes_t3 = text_to_pdf_bytes(
                         paraphrased,
@@ -1873,6 +2022,9 @@ with tab_plagiarism:
                         title_page_data=title_page_dict,
                         include_toc=opt_toc,
                         alignment=clean_alignment,
+                        layout_mode=clean_layout_mode,
+                        table_border_style=clean_table_border,
+                        center_figures=opt_center_figures,
                     )
                     import re as _re
                     plain_text_t3 = _re.sub(r"^#{1,6}\s+", "", paraphrased, flags=_re.MULTILINE)
@@ -2162,6 +2314,9 @@ with tab_plagiarism:
                     title_page_data=title_page_dict,
                     include_toc=False,
                     alignment=clean_alignment,
+                    layout_mode=clean_layout_mode,
+                    table_border_style=clean_table_border,
+                    center_figures=opt_center_figures,
                 )
                 pdf_bytes_auth = text_to_pdf_bytes(
                     authenticated_draft,
@@ -2170,6 +2325,9 @@ with tab_plagiarism:
                     title_page_data=title_page_dict,
                     include_toc=False,
                     alignment=clean_alignment,
+                    layout_mode=clean_layout_mode,
+                    table_border_style=clean_table_border,
+                    center_figures=opt_center_figures,
                 )
 
                 st.session_state["tab3_auth_results"] = {
@@ -2280,7 +2438,7 @@ with tab_audit:
         st.text_area("Cleaned Text:", value=st.session_state["tab4_sanitized_text"], height=200, key="sanitized_display")
         c_cp1, c_cp2 = st.columns(2)
         with c_cp1:
-            st.download_button("📄 Download Cleaned .docx", data=text_to_docx_bytes(st.session_state["tab4_sanitized_text"], alignment=clean_alignment), file_name="sanitized_text.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document", use_container_width=True)
+            st.download_button("📄 Download Cleaned .docx", data=text_to_docx_bytes(st.session_state["tab4_sanitized_text"], alignment=clean_alignment, layout_mode=clean_layout_mode, table_border_style=clean_table_border, center_figures=opt_center_figures), file_name="sanitized_text.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document", use_container_width=True)
         with c_cp2:
             st.download_button("📃 Download Cleaned .txt", data=st.session_state["tab4_sanitized_text"].encode("utf-8"), file_name="sanitized_text.txt", mime="text/plain", use_container_width=True)
 
@@ -2597,14 +2755,14 @@ Never wonder what the AI changed! Writing Enhancer Pro includes an interactive *
         with st.expander("Q2: Can I use this app without entering any API Key?", expanded=True):
             st.markdown("""
 **Yes!** You can use multiple core features without any API key:
-1. **⚡ Format & Typeset Document (Tab 1):** Instantly creates professional Title Pages, Table of Contents, 1-inch margins, and full justification in Word & PDF.
+1. **⚡ Format & Typeset Document (Tab 1):** Instantly creates professional Title Pages, Table of Contents, 1-inch margins, APA 7th publication tables, centered figures, and full justification in Word & PDF.
 2. **✨ 1-Click Anti-AI Sanitizer (Tab 4):** Strips em-dashes and removes digital watermarks offline.
 3. **📊 AI & Rhythm Diagnostic (Tab 4):** Analyzes burstiness, sentence variety, and AI vulnerability completely free.
 """)
 
         with st.expander("Q3: Will enhancing my document mess up my figures, tables, or charts?", expanded=False):
             st.markdown("""
-**Never!** Writing Enhancer Pro was specifically engineered for scientific research. When you upload a Word document, all embedded images, molecular docking graphics, charts, equations, and tables remain locked in their exact original positions.
+**Never!** Writing Enhancer Pro was specifically engineered for scientific research across all scientific disciplines. When you upload a Word document, all embedded scientific figures, experimental charts, microscopy images, technical diagrams, equations, and tables remain locked in their exact original positions and are styled with publication-grade academic standards.
 """)
 
         with st.expander("Q4: Can I enhance an entire 40 to 80-page thesis at once?", expanded=False):
