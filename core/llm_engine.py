@@ -45,19 +45,29 @@ class LLMProvider(str, Enum):
 
 # Default model per provider
 DEFAULT_MODELS: Dict[str, str] = {
-    LLMProvider.GEMINI: "gemini-2.5-flash",
+    LLMProvider.GEMINI: "gemini-flash-latest",
     LLMProvider.OPENAI: "gpt-4o-mini",
     LLMProvider.OPENROUTER: "anthropic/claude-3.5-sonnet",
+}
+
+# Automatic migration map for deprecated Gemini model identifiers
+DEPRECATED_GEMINI_MIGRATIONS: Dict[str, str] = {
+    "gemini-2.5-flash": "gemini-flash-latest",
+    "gemini-2.5-flash-lite": "gemini-flash-lite-latest",
+    "gemini-2.0-flash": "gemini-flash-latest",
+    "gemini-2.0-flash-exp": "gemini-flash-latest",
+    "gemini-1.5-flash": "gemini-flash-latest",
+    "gemini-1.5-pro": "gemini-flash-latest",
 }
 
 # Available model choices per provider (shown in UI)
 AVAILABLE_MODELS: Dict[str, List[str]] = {
     LLMProvider.GEMINI: [
-        "gemini-2.5-flash",
-        "gemini-2.5-flash-lite",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro",
+        "gemini-flash-latest",
+        "gemini-flash-lite-latest",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash",
+        "gemini-3.5-flash-lite",
     ],
     LLMProvider.OPENAI: [
         "gpt-4o-mini",
@@ -167,7 +177,11 @@ class LLMHumanizerEngine:
     ):
         self.api_key = api_key
         self.provider = LLMProvider(provider.lower())
-        self.model_name = model_name or DEFAULT_MODELS.get(self.provider, "gemini-flash-lite-latest")
+        raw_model = model_name or DEFAULT_MODELS.get(self.provider, "gemini-3.6-flash")
+        if self.provider == LLMProvider.GEMINI:
+            self.model_name = DEPRECATED_GEMINI_MIGRATIONS.get(raw_model, raw_model)
+        else:
+            self.model_name = raw_model
         self.temperature = temperature
         self.max_output_tokens = max_output_tokens
         self.last_error: Optional[str] = None
@@ -420,9 +434,11 @@ class LLMHumanizerEngine:
         for attempt in range(retries):
             # Select model: use self.model_name on first attempt, rotate on subsequent attempts
             current_model = self.model_name
-            if self.provider == LLMProvider.GEMINI and attempt > 0:
-                idx = attempt % len(gemini_fallbacks)
-                current_model = gemini_fallbacks[idx]
+            if self.provider == LLMProvider.GEMINI:
+                current_model = DEPRECATED_GEMINI_MIGRATIONS.get(current_model, current_model)
+                if attempt > 0:
+                    idx = attempt % len(gemini_fallbacks)
+                    current_model = gemini_fallbacks[idx]
 
             try:
                 if self.provider == LLMProvider.GEMINI:
@@ -435,14 +451,15 @@ class LLMHumanizerEngine:
                 error_str = str(e).lower()
                 is_rate_limit = "429" in error_str or "rate" in error_str or "quota" in error_str
                 is_server_error = any(code in error_str for code in ["500", "502", "503", "overloaded", "unavailable"])
+                is_not_found = any(k in error_str for k in ["404", "not found", "no longer available"])
 
-                if is_rate_limit or is_server_error:
+                if is_rate_limit or is_server_error or is_not_found:
                     base_delay = (1.5 ** attempt) * (1 + random.random() * 0.5)
-                    wait_time = min(base_delay, 5.0)  # Fast max 5s wait
+                    wait_time = min(base_delay, 5.0) if not is_not_found else 0.5
 
                     logger.warning(
                         f"Attempt {attempt + 1}/{retries} on {current_model} failed "
-                        f"({'rate-limit' if is_rate_limit else 'server-error'}). "
+                        f"({'deprecated/not-found' if is_not_found else ('rate-limit' if is_rate_limit else 'server-error')}). "
                         f"Retrying with alternative model in {wait_time:.1f}s... Error: {e}"
                     )
                     time.sleep(wait_time)

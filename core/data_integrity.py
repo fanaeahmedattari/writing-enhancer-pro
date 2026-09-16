@@ -257,19 +257,39 @@ def audit_scientific_fidelity(original_text: str, humanized_text: str) -> Dict[s
                 "detail": f"Publication year '{yr}' was omitted or altered during rewriting."
             })
 
-    # 8. Check Sequential Ordering of Numbered Citations (IEEE / Vancouver)
-    trans_num_cites = [num for num, _ in trans_entities["numbered_cites"]]
-    if len(trans_num_cites) >= 2:
-        for idx in range(len(trans_num_cites) - 1):
-            if trans_num_cites[idx] > trans_num_cites[idx + 1]:
-                total_checks += 1
-                discrepancies.append({
-                    "type": "Citation Sequence Inversion",
-                    "original": f"[{trans_num_cites[idx]}] before [{trans_num_cites[idx+1]}]",
-                    "status": "Out-of-Order Numbered Citation",
-                    "severity": "HIGH",
-                    "detail": f"Numbered citation [{trans_num_cites[idx]}] appears before [{trans_num_cites[idx+1]}], violating sequential academic ordering."
-                })
+    # 8. Check Sequential Ordering of First-Introduced Numbered Citations (IEEE / Vancouver)
+    def _get_first_appearance_sequence(numbered_cites_list):
+        seen = []
+        for num, _ in numbered_cites_list:
+            if num not in seen:
+                seen.append(num)
+        return seen
+
+    orig_first_cites = _get_first_appearance_sequence(orig_entities.get("numbered_cites", []))
+    trans_first_cites = _get_first_appearance_sequence(trans_entities.get("numbered_cites", []))
+
+    if len(trans_first_cites) >= 2:
+        for idx in range(len(trans_first_cites) - 1):
+            curr_c = trans_first_cites[idx]
+            next_c = trans_first_cites[idx + 1]
+            if curr_c > next_c:
+                # Check if this inversion was already present in the original document
+                orig_had_inversion = False
+                if curr_c in orig_first_cites and next_c in orig_first_cites:
+                    orig_curr_idx = orig_first_cites.index(curr_c)
+                    orig_next_idx = orig_first_cites.index(next_c)
+                    if orig_curr_idx < orig_next_idx:
+                        orig_had_inversion = True
+
+                if not orig_had_inversion:
+                    total_checks += 1
+                    discrepancies.append({
+                        "type": "Citation Sequence Inversion",
+                        "original": f"[{curr_c}] before [{next_c}]",
+                        "status": "Out-of-Order Numbered Citation",
+                        "severity": "HIGH",
+                        "detail": f"Numbered citation [{curr_c}] was newly introduced before [{next_c}], violating sequential academic ordering."
+                    })
 
     # Calculate overall fidelity score
     if total_checks == 0:

@@ -24,6 +24,7 @@ from core.llm_engine import (
     LLMProvider,
     AVAILABLE_MODELS,
     DEFAULT_MODELS,
+    DEPRECATED_GEMINI_MIGRATIONS,
 )
 from core.prompt_rules import analyze_ai_patterns, calculate_ngram_similarity
 from core.unicode_cleaner import sanitize_unicode
@@ -155,15 +156,21 @@ Or in **Streamlit Cloud Settings > Secrets**.
 
 # --- Model Selection ---
 provider_enum = LLMProvider(selected_provider)
-model_list = AVAILABLE_MODELS.get(provider_enum, ["gemini-2.5-flash"])
+model_list = AVAILABLE_MODELS.get(provider_enum, ["gemini-3.6-flash"])
 default_model = DEFAULT_MODELS.get(provider_enum, model_list[0])
+
+# Auto-migrate deprecated model choice if held in session state
+sb_key = f"sb_model_select_{selected_provider}"
+if sb_key in st.session_state and st.session_state[sb_key] in DEPRECATED_GEMINI_MIGRATIONS:
+    st.session_state[sb_key] = DEPRECATED_GEMINI_MIGRATIONS[st.session_state[sb_key]]
+
 default_idx = model_list.index(default_model) if default_model in model_list else 0
 
 selected_model = st.sidebar.selectbox(
     "Model",
     options=model_list,
     index=default_idx,
-    key=f"sb_model_select_{selected_provider}",
+    key=sb_key,
 )
 
 # --- Rewrite Mode ---
