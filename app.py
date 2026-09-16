@@ -14,18 +14,68 @@ from typing import Any, Dict, List, Optional, Union
 import streamlit as st
 from dotenv import load_dotenv
 
+import sys
 import importlib
+
+# Ensure repository root is on sys.path for Streamlit Cloud deployment
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
+# Force-reload core submodules if cached by Streamlit runtime across script reruns
+for _mod_name in (
+    "core.docx_parser",
+    "core.llm_engine",
+    "core.prompt_rules",
+    "core.unicode_cleaner",
+    "core.data_integrity",
+):
+    if _mod_name in sys.modules:
+        try:
+            importlib.reload(sys.modules[_mod_name])
+        except Exception:
+            pass
+
+# Import core.docx_parser safely
 import core.docx_parser
 if not hasattr(core.docx_parser.DocxChunker, "extract_global_document_context") or not hasattr(core.docx_parser, "extract_global_document_context"):
     importlib.reload(core.docx_parser)
 from core.docx_parser import DocxChunker, extract_global_document_context
-from core.llm_engine import (
-    LLMHumanizerEngine,
-    LLMProvider,
-    AVAILABLE_MODELS,
-    DEFAULT_MODELS,
-    DEPRECATED_GEMINI_MIGRATIONS,
-)
+
+# Import core.llm_engine safely with runtime reload and attribute fallback
+try:
+    import core.llm_engine
+    if not hasattr(core.llm_engine, "DEPRECATED_GEMINI_MIGRATIONS"):
+        importlib.reload(core.llm_engine)
+    from core.llm_engine import (
+        LLMHumanizerEngine,
+        LLMProvider,
+        AVAILABLE_MODELS,
+        DEFAULT_MODELS,
+        DEPRECATED_GEMINI_MIGRATIONS,
+    )
+except ImportError:
+    if "core.llm_engine" in sys.modules:
+        importlib.reload(sys.modules["core.llm_engine"])
+    from core.llm_engine import (
+        LLMHumanizerEngine,
+        LLMProvider,
+        AVAILABLE_MODELS,
+        DEFAULT_MODELS,
+    )
+    DEPRECATED_GEMINI_MIGRATIONS = getattr(
+        sys.modules.get("core.llm_engine"),
+        "DEPRECATED_GEMINI_MIGRATIONS",
+        {
+            "gemini-2.5-flash": "gemini-flash-latest",
+            "gemini-2.5-flash-lite": "gemini-flash-lite-latest",
+            "gemini-2.0-flash": "gemini-flash-latest",
+            "gemini-2.0-flash-exp": "gemini-flash-latest",
+            "gemini-1.5-flash": "gemini-flash-latest",
+            "gemini-1.5-pro": "gemini-flash-latest",
+        },
+    )
+
 from core.prompt_rules import analyze_ai_patterns, calculate_ngram_similarity
 from core.unicode_cleaner import sanitize_unicode
 
