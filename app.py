@@ -2345,333 +2345,279 @@ with tab_audit:
 # =========================================================================== #
 
 with tab_help:
-    st.markdown("### 📖 Interactive User Guide & System Documentation")
-    st.caption("Learn how to unlock the full potential of Writing Enhancer Pro. Drag the slider below to explore any section:")
+    st.markdown("### 🌟 Welcome to Writing Enhancer Pro — Your Academic Superpower")
+    st.caption("Everything you need to produce flawless, publication-grade academic writing with 0% AI flags, zero figure loss, and guaranteed submission confidence. Select a topic below:")
 
     help_section = st.select_slider(
-        "📍 Drag slider to navigate guides:",
+        "📍 Explore Features & User Guides:",
         options=[
-            "📄 Tab 1: Document Enhancer",
-            "✏️ Tab 2: Quick Text Rewriter",
-            "🛡️ Tab 3: Plagiarism & Citations",
-            "🔬 Tab 4: AI Marker Auditor",
-            "🧪 Scientific Data & Figure Preservation Guide",
-            "⚙️ Sidebar Controls & Parameters",
-            "🛡️ Anti-AI & Turnitin Playbook",
+            "🚀 Quick Start (Results in 60 Seconds)",
+            "📄 Full Document Enhancer (Thesis & Papers)",
+            "✏️ Quick Text & Section Rewriter",
+            "🛡️ Plagiarism Defeater & Citations",
+            "🔬 100% Free Tools (No API Key Needed)",
+            "💎 Pro Settings for 0% AI & Maximum Impact",
             "❓ Frequently Asked Questions (FAQ)",
         ],
-        value="📄 Tab 1: Document Enhancer",
+        value="🚀 Quick Start (Results in 60 Seconds)",
         key="help_nav_slider",
     )
 
     st.markdown("---")
 
     # ------------------------------------------------------------- #
-    # 1. Tab 1 Guide
+    # 1. Quick Start
     # ------------------------------------------------------------- #
-    if help_section == "📄 Tab 1: Document Enhancer":
-        st.markdown("### 📄 Tab 1: Document Enhancer & Instant Typesetter")
-        st.info("💡 **Best For:** Complete research papers, thesis chapters, coursework assignments, and presentations (.docx, .pdf, .pptx, .txt, .md).")
+    if help_section == "🚀 Quick Start (Results in 60 Seconds)":
+        st.markdown("### 🚀 Get Publication-Ready Writing in 3 Simple Steps")
+        st.info("💡 **Why Scholars Love This App:** Whether you are finishing a 50-page Master's/PhD thesis, submitting a journal paper, or polishing a class assignment, Writing Enhancer Pro turns rough drafts into flawless, human-sounding academic prose while keeping every single figure, table, and data point 100% intact.")
 
-        col_t1_a, col_t1_b = st.columns(2)
-        with col_t1_a:
+        c1, c2, c3 = st.columns(3)
+        with c1:
             st.markdown("""
-#### 🌟 Two Ways to Process:
-1. **📐 Format Document Only (0 API Cost — Instant 1-Second Execution):**
-   - **No API key or tokens required.**
-   - Retains **100% of embedded drawings, figures, and equations in-place**.
-   - Instantly creates a publication-ready manuscript with:
-     - Academic Title Page (with Course Code, Student ID, and Instructor name for Assignments).
-     - Dynamic Table of Contents (TOC) with dot leaders (`...... Page X`).
-     - Standard 1-inch margins (APA / Harvard / IEEE compliant).
-     - Right-aligned running headers & centered page numbering.
-     - Full paragraph justification (`JUSTIFY`) across Word and PDF.
-     - Automatic Figure & Table caption detection.
-2. **🚀 Humanize & Enhance Document (AI-Powered):**
-   - **In-Place Media Preservation:** Rewrites text paragraphs in-place within the original Word XML package without stripping images, charts, or math equations.
-   - **Global Document Context ("The North Star"):** Passes high-level macro-context (manuscript title, core hypotheses, acronyms) across all chunks to eliminate chunk-boundary amnesia and terminology drift.
-   - **Dynamic Tail Stitching:** Feeds the actual newly generated sentence from Chunk $K$ into Chunk $K+1$ for unified flow.
-   - Chunks large documents into safe word blocks (e.g. 400 words).
-   - Eliminates AI detection markers (ZeroGPT, GPTZero, Turnitin).
-   - Enhances vocabulary, academic register, and logical sentence flow.
+##### 1️⃣ Upload or Paste
+- Drop your `.docx`, `.pdf`, `.pptx`, `.txt`, or `.md` file in **Tab 1**, or paste paragraphs directly in **Tab 2**.
+- Works with complete theses, single chapters, or quick drafts.
 """)
-        with col_t1_b:
-            st.markdown(r"""
-#### 📋 Step-by-Step Instructions:
-1. **Upload your document:** Drag and drop your `.docx`, `.pdf`, `.pptx`, `.txt`, or `.md` file.
-2. **Review Step 1 Pre-Analysis Card:** The app scans your document and displays total words, headings, figure captions, table captions, and estimated page count.
-3. **Choose your mode:** Click **"📐 Format Document Only"** for instant formatting or **"🚀 Humanize & Enhance Document"** for full AI rewriting.
-4. **Inspect Results:**
-   - **🔬 Scientific Data & Figure Integrity Audit Card:** Verifies that $p$-values, binding affinities, bond lengths ($\text{\AA}$), active-site residue codes, and citation ordering remained intact.
-   - **🛡️ Plagiarism & N-Gram Overlap Scan:** Inspects 4-gram sequences matching the source text.
-   - **🔍 Visual Inline Word Diff:** Red strikethrough denotes removed AI clichés; green denotes scholarly replacements.
-5. **Download Formats:** Download in `.docx`, `.pdf`, `.md`, or `.txt`. Download buttons are preserved permanently and never disappear upon clicking!
+        with c2:
+            st.markdown("""
+##### 2️⃣ Choose Your Goal
+- **In a hurry?** Click **"⚡ Format & Typeset"** for instant 1-second formatting with **0 tokens and 0 API cost**.
+- **Need humanization?** Click **"🚀 Enhance Document"** to eliminate AI tone, boost flow, and elevate vocabulary.
+""")
+        with c3:
+            st.markdown("""
+##### 3️⃣ Inspect & Download
+- Check your **Originality Score** and live **Before/After Visual Word Diff**.
+- Download publication-ready `.docx` or `.pdf` with title page, Table of Contents, and margins ready for your supervisor.
+""")
+
+        st.markdown("---")
+        st.markdown("#### 🎯 Which Feature Do You Need Today?")
+        f_col1, f_col2, f_col3, f_col4 = st.columns(4)
+        with f_col1:
+            st.markdown("""
+**📄 Full Theses & Papers**  
+👉 Head to **Tab 1**  
+Enhance 10–100+ page manuscripts with continuous chapter flow and zero image loss.
+""")
+        with f_col2:
+            st.markdown("""
+**✏️ Quick Paragraphs & Notes**  
+👉 Head to **Tab 2**  
+Polish abstracts, conclusions, or combine multiple research drafts with one click.
+""")
+        with f_col3:
+            st.markdown("""
+**🛡️ Plagiarism & Citations**  
+👉 Head to **Tab 3**  
+Beat Turnitin string matching and auto-generate APA, IEEE, or Harvard citations.
+""")
+        with f_col4:
+            st.markdown("""
+**🔬 Free AI Diagnostic**  
+👉 Head to **Tab 4**  
+1-Click sanitizer to strip em-dashes and check your draft's AI score without an API key.
 """)
 
     # ------------------------------------------------------------- #
-    # 2. Tab 2 Guide
+    # 2. Tab 1 Guide: Full Documents
+    # ------------------------------------------------------------- #
+    elif help_section == "📄 Full Document Enhancer (Thesis & Papers)":
+        st.markdown("### 📄 Tab 1: Full Document Enhancer & Instant Typesetter")
+        st.info("💡 **Best For:** Complete thesis dissertations, journal articles, term papers, and conference proceedings (.docx, .pdf, .pptx).")
+
+        t1_a, t1_b = st.columns(2)
+        with t1_a:
+            st.markdown("""
+#### ⚡ Superpower #1: Instant 1-Click Typesetter (100% Free)
+Need to submit in 5 minutes and don't want to spend tokens or format manually?
+- **Zero API Key required:** Works immediately on any uploaded file.
+- **University-Standard Formatting:**
+  - Formal Title Page (includes Course Code, Student ID, and Instructor name).
+  - Dynamic Table of Contents (TOC) with leader dots (`...... Page X`).
+  - Standard 1-inch margins (APA, IEEE, Harvard compliant).
+  - Clean headers & centered page numbering.
+  - Full paragraph justification for a sharp, published look.
+- **Instant Output:** Generates both a beautifully styled `.docx` and a print-ready `.pdf` in just 1 second!
+""")
+        with t1_b:
+            st.markdown("""
+#### 🚀 Superpower #2: AI Humanizer & Scholarly Upgrade
+Ready to transform raw or AI-assisted drafts into polished academic prose?
+- **Passes AI Detectors:** Strips robotic transitions (*"delve into"*, *"it is crucial to note"*, *"tapestry"*) and replaces them with authentic scholarly rhythm.
+- **100% Safe Figures & Tables:** Your molecular graphics, charts, gel photos, and tables remain locked in their exact locations.
+- **Seamless Chapter Continuity:** Long documents flow effortlessly without repetitive opening words or disjointed section breaks.
+- **Data Veracity Protection:** Ensures your $p$-values, binding energies, percentages, and scientific codes are strictly preserved.
+""")
+
+        st.markdown("---")
+        st.markdown("#### 💡 Pro Tip for Long Manuscripts (20–80+ Pages)")
+        st.markdown("""
+When uploading a major thesis or book chapter, keep **"Keep Figures, Charts & Media In-Place"** and **"Tables & Figures Integrity"** checked in the sidebar. The app will preserve your visual layout while elevating your text to top-tier international publication standards.
+""")
+
+    # ------------------------------------------------------------- #
+    # 3. Tab 2 Guide: Quick Text & Multi-File
     # ------------------------------------------------------------- #
     elif help_section == "✏️ Tab 2: Quick Text Rewriter":
-        st.markdown("### ✏️ Tab 2: Quick Text & Multi-Document Rewriter")
-        st.info("💡 **Best For:** Rewriting individual sections, paragraphs, abstracts, conclusions, or batch-merging multiple files.")
+        st.markdown("### ✏️ Tab 2: Quick Text & Multi-File Rewriter")
+        st.info("💡 **Best For:** Polishing specific paragraphs, drafting abstracts, perfecting conclusions, or batch-merging multiple research files.")
 
-        c_t2_1, c_t2_2 = st.columns(2)
-        with c_t2_1:
+        t2_a, t2_b = st.columns(2)
+        with t2_a:
             st.markdown("""
-#### 🌟 Core Features:
-- **Direct Text Paste:** Paste any rough draft, messy AI text, or notes.
-- **Multi-File Uploader:** Upload multiple `.docx`, `.pdf`, `.pptx`, `.txt`, and `.md` files at once.
-  - **"📥 Load Selected File":** Loads an individual file into the editor.
-  - **"📚 Merge & Load All Files":** Combines all uploaded files with section separators into one single manuscript for batch rewriting.
-- **Section-Aware Processing:** Select whether your text is an Abstract, Introduction, Literature Review, Methodology, Results, Discussion, or Conclusion.
+#### 🌟 Highlight Features:
+- **Direct Paste & Polish:** Drop in any rough notes, messy bullet points, or AI-generated text and instantly turn them into cohesive, academic paragraphs.
+- **Multi-File Batch Merger:**
+  - Upload multiple research drafts, meeting notes, or article excerpts at once.
+  - Click **"📚 Merge & Load All Files"** to assemble them into one master document ready for comprehensive polishing.
+- **Target Word Count Control:** Choose whether to keep text concise, balanced, or expanded for thorough academic depth.
 """)
-        with c_t2_2:
+        with t2_b:
             st.markdown("""
-#### 🎯 The Scientific Conclusion Protocol:
-Selecting the **Conclusion** section enforces the 4-part academic sequence:
-1. **Restate the Main Idea:** Re-articulates the thesis using fresh vocabulary (never copied from introduction).
-2. **Synthesize Key Findings:** Interconnects arguments rather than making a boring list.
-3. **Answer the 'So What?':** Explains why the findings matter in the broader field.
-4. **Forward-Looking Final Thought:** Leaves actionable future vectors or clinical/policy recommendations.
-*Banned AI Clichés:* Words like *"In conclusion"*, *"To sum up"*, and *"All in all"* are automatically eradicated!
+#### 🎯 The Perfect Scientific Conclusion:
+Selecting the **Conclusion** mode automatically applies the 4-part academic framework trusted by top journal editors:
+1. **Restate Core Thesis:** Re-articulates the main discovery with fresh, sophisticated vocabulary.
+2. **Synthesize Findings:** Bridges your evidence together instead of offering a repetitive list.
+3. **The "So What?":** Clarifies why your findings matter for science or real-world practice.
+4. **Actionable Horizon:** Concludes with future clinical, industrial, or theoretical vectors.
+*Banned AI Clichés:* Formulaic phrases like *"In conclusion"*, *"To sum up"*, and *"All in all"* are completely eliminated.
 """)
 
     # ------------------------------------------------------------- #
-    # 3. Tab 3 Guide
+    # 4. Tab 3 Guide: Plagiarism & Citations
     # ------------------------------------------------------------- #
     elif help_section == "🛡️ Tab 3: Plagiarism & Citations":
-        st.markdown("### 🛡️ Tab 3: Plagiarism Studio & Multi-Source Citation Authenticator")
-        st.info("💡 **Best For:** Beating Turnitin / iThenticate string-matching, comparing drafts against multiple reference papers, and auto-generating citations.")
+        st.markdown("### 🛡️ Tab 3: Plagiarism Studio & Citation Generator")
+        st.info("💡 **Best For:** Passing Turnitin / iThenticate with 0% similarity, cross-checking drafts against research papers, and generating bibliographies.")
 
-        st.markdown("""
-#### 🛠️ Three Workflows Inside Tab 3:
-""")
-        wf1, wf2, wf3 = st.columns(3)
-        with wf1:
+        p1, p2 = st.columns(2)
+        with p1:
             st.markdown("""
-##### ⚡ 1. Deep Paraphraser
-- Paste text or upload a file.
-- Disrups consecutive 4-to-7 word N-grams that Turnitin flags.
-- Displays **Originality Score %**, **4-Gram Overlap %**, and highlights identical matching sequences.
-- Offers direct `.docx`, `.pdf`, `.md`, and `.txt` downloads.
+#### ⚡ Deep Paraphraser (Beat String-Matching)
+Turnitin flags continuous runs of 4 or more identical words. Our Deep Paraphraser restructures sentence syntax without changing your underlying scientific facts:
+- **Instant Originality Score:** See your real-time originality percentage and overlap risk level.
+- **Identical Sequence Detector:** Pinpoints any remaining matching word sequences so you have 100% peace of mind before submitting.
+- **Ultra-Low Similarity Option:** Check the box for deep clause inversion that maximizes Turnitin evasion.
 """)
-        with wf2:
+        with p2:
             st.markdown("""
-##### 🔍 2. Multi-Source Authenticator
-- **Upload multiple reference PDFs / papers** (your research corpus).
-- **Upload or paste your draft**.
-- Compares your draft against each source individually and combined.
-- Generates a **Source-by-Source Breakdown Table**.
-- Auto-generates in-text citations & full bibliography (**APA**, **IEEE [1]**, or **Harvard**).
-- 1-Click download of draft with references attached!
-""")
-        with wf3:
-            st.markdown("""
-##### 📚 3. Paraphrasing Masterclass
-- Built-in educational guide teaching the 4 scientific pillars:
-  1. *Read & Shield Technique*
-  2. *Syntactic Flipping (Clause Inversion)*
-  3. *Part-of-Speech Transformation (Nominalization)*
-  4. *The Inviolable Citation Rule* (citations are mandatory even with 0% similarity).
+#### 🔍 Multi-Source Reference Matcher & Citation Maker
+Ever wonder if your writing overlaps with your reference papers?
+1. **Upload your source papers** (PDFs, Word docs, textbooks) in the Left Box.
+2. **Paste your draft** in the Right Box.
+3. Click **"Analyze String Overlap"**:
+   - The app scans your draft against every reference paper simultaneously.
+   - Shows a clear **Source-by-Source Similarity Breakdown**.
+   - **Auto-generates proper citations & bibliography** in **APA 7th**, **IEEE [1]**, or **Harvard**!
+   - 1-Click download of your draft with complete references attached.
 """)
 
     # ------------------------------------------------------------- #
-    # 4. Tab 4 Guide
+    # 5. Free Tools: Tab 4 & Offline
     # ------------------------------------------------------------- #
-    elif help_section == "🔬 Tab 4: AI Marker Auditor":
-        st.markdown("### 🔬 Tab 4: AI Marker & Watermark Auditor")
-        st.info("💡 **Best For:** Diagnostic text check before submitting to universities, journals, or Turnitin. 100% Free — No API Key needed!")
+    elif help_section == "🔬 100% Free Tools (No API Key Needed)":
+        st.markdown("### 🔬 Powerful Free Tools — No Tokens or API Key Needed")
+        st.info("💡 **100% Free & Unlimited:** You can use these high-impact features completely free without signing up for any API keys.")
 
-        c_t4_a, c_t4_b = st.columns(2)
-        with c_t4_a:
+        ft1, ft2 = st.columns(2)
+        with ft1:
             st.markdown("""
-#### 🔍 Diagnostic Audits Performed:
-- **AI Vulnerability Score (0 to 100):** Evaluates passive voice density, cliché academic transitions (*"furthermore"*, *"moreover"*, *"delve"*), and synthetic rhythm.
-- **Em-Dash (`—`) & Hyphen Frequency:** ZeroGPT and Turnitin penalize em-dash parentheticals (`—word—`). This audit counts all em-dashes, en-dashes, and double hyphens.
-- **Sentence Burstiness Meter (Rhythm Variance):** Calculates the standard deviation of sentence lengths. Natural human writing mixes 5-word sentences with 30-word sentences (Std Dev $> 7.0$). AI writing is robotic and flat (Std Dev $< 4.0$).
-- **Unicode & Steganography Scanner:** Detects zero-width invisible characters (`\u200b`, `\ufeff`) often used by LLM providers as synthetic watermarks.
-""")
-        with c_t4_b:
-            st.markdown("""
-#### ✨ 1-Click Anti-AI Sanitizer:
-- Don't want to spend tokens rewriting?
+#### ✨ 1-Click Anti-AI Sanitizer (Tab 4)
+AI writing detectors (Turnitin, ZeroGPT, GPTZero) heavily target specific punctuation habits and invisible watermarks.
 - Simply paste your text and click **"✨ 1-Click Anti-AI Sanitizer"**.
-- The app automatically:
-  - Converts all em-dashes (`—`) and double hyphens (`--`) into clean human-style commas or split sentences.
-  - Scrubs all invisible zero-width watermarks and exotic Unicode characters.
-  - Allows instant download of the sanitized text in `.docx` or `.txt`!
+- **Instant Fixes Applied:**
+  - Converts all em-dashes (`—`) and double hyphens (`--`) into clean human-style punctuation.
+  - Cleans invisible zero-width characters and synthetic watermarks.
+  - Lets you download clean Word (`.docx`) or Text (`.txt`) immediately!
 """)
-
-    # ------------------------------------------------------------- #
-    # 4.5 Scientific Data & Figure Preservation Guide
-    # ------------------------------------------------------------- #
-    elif help_section == "🧪 Scientific Data & Figure Preservation Guide":
-        st.markdown("### 🧪 Scientific Data, Figure & Mathematical Integrity Guide")
-        st.info("💡 **Engineered for High-Stakes Publications:** Learn how Writing Enhancer Pro protects empirical values, embedded figures, charts, and citation ordering during AI enhancement.")
-
-        s1, s2 = st.columns(2)
-        with s1:
+        with ft2:
             st.markdown("""
-#### 🖼️ In-Place Media Preservation Engine:
-In standard AI text humanizers, uploading a `.docx` file strips all images, molecular docking poses, gel electrophoresis blots, and charts because the file is decomposed into plain text.
-
-**How Writing Enhancer Pro Solves This:**
-- **Zero Media Stripping:** Our parser traverses the native OpenXML DOM (`w:drawing`, `w:pict`, `m:oMath`) and updates text paragraphs strictly in-place.
-- **Bit-for-Bit Fidelity:** All raster bitmaps, vector graphics, equations, and complex structures remain identical down to the byte.
-- **Automatic Heading & Caption Protection:** Headings retain their structural styles without intrusive `#` markdown symbols, and captions remain intact under their corresponding graphics.
-""")
-        with s2:
-            st.markdown("""
-#### 🔬 Deterministic Data Integrity Auditor:
-LLMs often hallucinate or inadvertently mutate numbers during aggressive paraphrasing. To guarantee empirical validity, the app runs a regex-level audit comparing the source and enhanced text:
-
-- **$p$-Values & Confidence Intervals:** Detects $p < 0.05$, $p < 0.001$, and 95% CI values. If an LLM alters a significance metric, a high-severity alert is raised.
-- **Physical & Chemical Metrics:** Audits binding energies (e.g., $-8.6\\text{ kcal/mol}$ or $\\text{kJ/mol}$), bond lengths (e.g., $2.84\\text{ \\AA}$), molarities, and percentages.
-- **Active-Site Residue Identifiers:** Verifies that biological codes (e.g., `Cys166`, `His301`, `Glu170`) are never altered or hallucinated.
-- **Figure & Table Callouts:** Guarantees that references like *"Figure 3.1"*, *"Table 2"*, and panel callouts (*"Fig 3.2A vs 3.2B"*) are preserved without loss.
-- **Sequential Numbered Citations:** In numbered referencing styles (`[1]`, `[2]`), the engine verifies that citations appear in strictly increasing numerical sequence.
+#### 📊 Rhythm & Burstiness Auditor (Tab 4)
+- **AI Vulnerability Score:** Checks your text for robotic repetition, passive voice saturation, and predictable transitions.
+- **Sentence Burstiness Meter:** Human writing naturally mixes short 6-word statements with long 30-word analyses. AI writing is flat and monotonous. This meter shows you your exact rhythm score so you can write like a human author.
+- **Unicode Steganography Scan:** Guarantees your text is clean of hidden digital tracking tags.
 """)
 
         st.markdown("---")
         st.markdown("""
-#### 🧭 Global Document Context ("The North Star") & Dynamic Tail Stitching
-Large manuscripts (dissertations, review papers) are partitioned into chunks. Standard chunking leads to **chunk-boundary amnesia**—where Chunk 5 contradicts terminology introduced in Chunk 1.
-
-1. **The North Star:** Before processing any chunk, the engine scans the manuscript for the main title, overarching research hypotheses, established abbreviations, and primary headings. This macro-context is injected into the prompt of every chunk.
-2. **Dynamic Tail Stitching:** When Chunk 1 is rewritten, its actual newly generated concluding sentence is captured and fed into Chunk 2 as anchor context. This ensures that transitions between chunks are natural, fluid, and completely free of jarring seams or repeated transitional words.
+#### 📐 Instant Academic Typesetter (Tab 1)
+Upload any Word, PDF, or PowerPoint document and click **"⚡ Format & Typeset Document"**. In 1 second, you get a fully formatted, university-ready manuscript with title page, Table of Contents, 1-inch margins, and justified typography — completely free!
 """)
 
     # ------------------------------------------------------------- #
-    # 5. Sidebar Guide
+    # 6. Pro Settings for 0% AI
     # ------------------------------------------------------------- #
-    elif help_section == "⚙️ Sidebar Controls & Parameters":
-        st.markdown("### ⚙️ Sidebar Parameters & Academic Controls Guide")
-        st.info("💡 **Best For:** Customizing output style, document tone, formatting rules, and API keys.")
+    elif help_section == "💎 Pro Settings for 0% AI & Maximum Impact":
+        st.markdown("### 💎 Pro Settings: How Top Scholars Get 0% AI & Top Grades")
+        st.info("💡 **Customize Your Output in the Sidebar:** Tailor Writing Enhancer Pro to match your exact university guidelines, journal style, and regional preferences.")
 
-        with st.expander("🔑 1. API Provider & Model Selection", expanded=True):
+        with st.expander("🌐 1. Select Your English Tone (US, UK, or Indo-Pak)", expanded=True):
             st.markdown("""
-- **Google Gemini (Recommended — 100% Free):** Get a free key at [Google AI Studio](https://aistudio.google.com/apikey). No credit card required. Free tier offers generous requests per minute.
-  - *Models:* `gemini-2.5-flash` (recommended default), `gemini-2.5-flash-lite`, `gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-1.5-pro`.
-- **OpenRouter (Multi-Model):** Single key for Claude 3.5 Sonnet, GPT-4o, and Llama 3.3.
-- **OpenAI:** Direct OpenAI API keys for GPT-4o and GPT-4o-mini.
-""")
-
-        with st.expander("📋 2. Processing Checkboxes (What Each Option Does)", expanded=True):
-            st.markdown("""
-| Option | What It Does When Checked |
-| :--- | :--- |
-| **Keep Figures, Charts & Media In-Place** | Retains 100% of embedded images, vector graphics, molecular docking poses, and equations within the original `.docx` structure. |
-| **Humanize (Remove AI patterns)** | Strips synthetic transitional clichés (*"it is crucial to note"*, *"delve into"*), robotic preambles, and formulaic endings. |
-| **Academic Tone & Lexicon** | Elevates colloquial phrasing into scholarly vocabulary and disciplined academic register. |
-| **Anti-Plagiarism (N-Gram Breaking)** | Rearranges clauses and transposes words to defeat 4-to-7 word string matching in Turnitin / iThenticate. |
-| **Flow & Paragraph Stitching** | Uses cross-chunk context stitching so paragraphs connect smoothly without repetitive opening words. |
-| **Sentence Structure (Burstiness)** | Interleaves short punchy sentences (5–8 words) with complex academic sentences (24–34 words) to beat GPTZero. |
-| **Tables & Figures Integrity** | Protects markdown tables, LaTeX equations, numbers, and captions so factual data is never altered. |
-""")
-
-        with st.expander("🎯 3. Academic Work Mode & Document Type", expanded=False):
-            st.markdown("""
-- **📄 Journal Article (IMRaD Standard):** High-impact peer-reviewed paper format following Introduction, Methods, Results, and Discussion.
-- **🎓 Thesis / PhD Dissertation:** Exhaustive scholarly depth with extensive theoretical framework and methodological justification.
-- **📚 Coursework / Student Assignment:** Formatted for student submissions with fields for **Course Code**, **Student ID / Roll Number**, and **Instructor Name** on the Title Page.
-- **📖 Systematic Literature Review:** Focuses on thematic categorization, meta-analysis, and contrasting scholarly viewpoints.
-- **💻 Conference Paper (IEEE / ACM):** High technical density, direct contributions, and concise empirical arguments.
-- **💡 Grant Proposal / Scientific Pitch:** Persuasive yet rigorous problem significance, impact metrics, and methodology feasibility.
-- **📝 Academic Essay / Term Paper:** Clear thesis defense and pedagogical argumentative flow.
-""")
-
-        with st.expander("🌐 4. English Tone & Regional Conventions", expanded=False):
-            st.markdown("""
-- **Academic Rigorous (Global High-Impact):** Disciplined, objective third-person scholarly prose.
-- **Professional & Executive:** Direct, clear, active-voice communication suitable for reports.
-- **Native US English (APA Standard):** American spelling (`-ize`, `-or`), APA 7th edition punctuation.
-- **Native UK / Oxford English:** British spelling (`-ise`, `-our`), Oxford comma convention.
-- **Indo-Pak / Global Scholarly English (Normalizer):** Specially engineered for Pakistani and South Asian scholars. Automatically translates regional idioms into internationally recognized academic English:
-  - *"prepone"* $\rightarrow$ *"rescheduled to an earlier date"*
+- **Academic Rigorous (Global Standard):** Disciplined, objective third-person prose ideal for Nature, IEEE, Elsevier, and Springer journals.
+- **Native US English (APA Standard):** American spelling (`-ize`, `-or`) and APA 7th punctuation.
+- **Native UK / Oxford English:** British spelling (`-ise`, `-our`) and Oxford comma conventions.
+- **Indo-Pak Scholarly English (Regional Normalizer):** Specially designed for Pakistani and South Asian scholars! Automatically converts local idioms into internationally respected academic phrases:
   - *"do the needful"* $\rightarrow$ *"take the requisite measures"*
-  - *"revert back"* $\rightarrow$ *"provide a formal response / reply"*
-  - *"passed out from university"* $\rightarrow$ *"graduated from university"*
-  - *"intimate the committee"* $\rightarrow$ *"notify the committee"*
+  - *"prepone the defense"* $\rightarrow$ *"rescheduled to an earlier date"*
+  - *"revert back"* $\rightarrow$ *"provide a formal response"*
+  - *"passed out from college"* $\rightarrow$ *"graduated from college"*
 """)
 
-        with st.expander("📐 5. Formatting Checklist & Alignment", expanded=False):
+        with st.expander("🎯 2. Choose Your Work Mode (Thesis, Journal, or Assignment)", expanded=True):
             st.markdown("""
-- **Paragraph Alignment:** Choose **Justified (Default Academic)**, Left, Center, or Right. Standard academic publications (APA, IEEE, Harvard) require full justification.
-- **Title Page:** Generates a formal cover page followed by a clean Page Break.
-- **Table of Contents (TOC):** Automatically builds leader-dot page rows (`...... Page X`) and native Word XML dynamic fields.
-- **1-Inch Standard Margins:** 72pt margins on top, bottom, left, and right.
-- **Typography Preset:** Times New Roman (APA Standard), Arial, Calibri, Georgia, or Garamond.
+- **🎓 Thesis / PhD Dissertation:** Deep, exhaustive literature synthesis and rigorous theoretical framing.
+- **📄 Journal Article (IMRaD):** High-impact Introduction, Methods, Results, and Discussion structure.
+- **📚 Coursework / Student Assignment:** Formats the title page with your **Course Code**, **Student ID / Roll No**, and **Instructor Name** for effortless submission.
+- **📖 Systematic Literature Review:** Focuses on thematic categorization and comparative evaluation.
+- **💡 Grant Proposal / Scientific Pitch:** Persuasive significance, empirical methodology, and projected impact.
 """)
 
-    # ------------------------------------------------------------- #
-    # 6. Anti-AI Playbook
-    # ------------------------------------------------------------- #
-    elif help_section == "🛡️ Anti-AI & Turnitin Playbook":
-        st.markdown("### 🛡️ Anti-AI & Turnitin Evasion Playbook")
-        st.info("💡 **The Science of Beating Detectors:** Learn how Turnitin, ZeroGPT, GPTZero, Copyleaks, and Winston AI work — and how to pass them with 0% AI and 0% similarity.")
-
-        st.markdown("""
-#### 🏆 The 5 Golden Rules of Human Academic Writing:
-
-1. **Rule #1: Absolute Ban on Em-Dashes (`—`) and Double Hyphens (`--`)**
-   - AI models use em-dashes for non-restrictive clauses far more frequently than human writers.
-   - ZeroGPT and Turnitin assign heavy penalty points to em-dashes. Use commas, parentheses, or separate sentences instead.
-
-2. **Rule #2: Enforce Radical Burstiness (Sentence Length Variety)**
-   - AI writes sentences of nearly identical lengths (e.g. 17 words, 18 words, 17 words).
-   - Humans naturally alternate: write one short 6-word sentence. Then follow it with a 30-word compound sentence containing semicolons and dependent clauses. Target a standard deviation $> 8.0$.
-
-3. **Rule #3: Maximize Perplexity (Avoid Greedily Predictable Words)**
-   - Detectors calculate how 'predictable' each next word is.
-   - Banned predictable bridges: *"In today's fast-paced world"*, *"It is important to remember"*, *"A testament to"*, *"Tapestry of"*, *"Delve into"*.
-   - Replace them with precise, field-specific empirical terminology.
-
-4. **Rule #4: Break 4-to-6 Word N-Grams with Syntactic Flipping**
-   - Turnitin compares consecutive runs of 4 to 6 words against 99+ billion archived pages.
-   - Flip cause-and-effect clauses:
-     - *Original:* "Because the sample degraded, the experiment failed."
-     - *Flipped:* "Experimental failure directly resulted from rapid sample degradation."
-
-5. **Rule #5: Scrub Invisible Zero-Width Steganography**
-   - Some AI engines inject invisible zero-width spaces (`\u200b`, `\ufeff`) as digital watermarks.
-   - Always run your text through our built-in Unicode cleaner or Tab 4 sanitizer before submission.
+        with st.expander("🔍 3. Inspect Changes with the Visual Word Diff", expanded=False):
+            st.markdown("""
+Never wonder what the AI changed! Writing Enhancer Pro includes an interactive **Word-by-Word Visual Diff**:
+- 🔴 **Red strikethrough:** Highlights deleted robotic phrasing, AI clichés, and filler words.
+- 🟢 **Green bold text:** Highlights upgraded academic vocabulary and smoother transitional phrasing.
+- Compare original and enhanced side-by-side so you maintain total editorial authority over your paper.
 """)
 
     # ------------------------------------------------------------- #
     # 7. FAQ
     # ------------------------------------------------------------- #
     elif help_section == "❓ Frequently Asked Questions (FAQ)":
-        st.markdown("### ❓ Frequently Asked Questions (FAQ)")
+        st.markdown("### ❓ Frequently Asked Questions")
 
-        with st.expander("Q1: Is Google Gemini API really 100% free?", expanded=True):
+        with st.expander("Q1: Is Google Gemini really 100% free to use?", expanded=True):
             st.markdown("""
-**Yes!** Google AI Studio provides a free tier for developers and researchers that does not require any credit card. You get generous limits (15 requests per minute), which is more than enough to enhance and humanize entire manuscripts.
-- Get your key here: [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+**Yes!** Google provides free API access for developers and researchers with no credit card required. You get generous limits (15 requests per minute), which is more than enough to enhance entire theses and research papers.
+- Get your free key here: [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
 """)
 
-        with st.expander("Q2: Can I use this app without an API Key?", expanded=True):
+        with st.expander("Q2: Can I use this app without entering any API Key?", expanded=True):
             st.markdown("""
-**Yes, absolutely!** You can use two major features without any API key:
-1. **📐 Format Document Only (in Tab 1):** Instantly creates professional Title Pages, Table of Contents, 1-inch margins, and full justification in Word & PDF with 0 tokens and 0 API cost.
-2. **🔬 AI Marker Auditor (in Tab 4):** Diagnoses AI score, burstiness, em-dashes, and scrubs watermarks 100% offline with no API key.
+**Yes!** You can use multiple core features without any API key:
+1. **⚡ Format & Typeset Document (Tab 1):** Instantly creates professional Title Pages, Table of Contents, 1-inch margins, and full justification in Word & PDF.
+2. **✨ 1-Click Anti-AI Sanitizer (Tab 4):** Strips em-dashes and removes digital watermarks offline.
+3. **📊 AI & Rhythm Diagnostic (Tab 4):** Analyzes burstiness, sentence variety, and AI vulnerability completely free.
 """)
 
-        with st.expander("Q3: What should I do if Turnitin flags similarity?", expanded=False):
+        with st.expander("Q3: Will enhancing my document mess up my figures, tables, or charts?", expanded=False):
             st.markdown("""
-1. Go to **Tab 3 ("Plagiarism & Paraphrasing Studio")**.
-2. Select **"Similarity & Overlap Inspector"**.
-3. Upload your reference papers in the Left Box and paste your draft in the Right Box.
-4. The system will pinpoint the exact 4-word sequences that caused the flag and provide suggested academic citations (**APA**, **IEEE**, or **Harvard**) to ensure complete academic integrity.
+**Never!** Writing Enhancer Pro was specifically engineered for scientific research. When you upload a Word document, all embedded images, molecular docking graphics, charts, equations, and tables remain locked in their exact original positions.
 """)
 
-        with st.expander("Q4: Will enhancing my document delete or compress my molecular docking figures or charts?", expanded=False):
+        with st.expander("Q4: Can I enhance an entire 40 to 80-page thesis at once?", expanded=False):
             st.markdown("""
-**No!** Writing Enhancer Pro features an **In-Place Media Preservation Engine**. When you upload a `.docx` file, all embedded vector drawings, high-resolution bitmaps, molecular docking poses, Ramachandran plots, and complex math equations are preserved byte-for-byte in their original OpenXML packaging.
+**Yes!** Tab 1 automatically handles documents of any length. It maintains continuity across chapters, ensuring that terminology, hypothesis statements, and tone remain unified from Chapter 1 all the way to Chapter 5.
 """)
 
-        with st.expander("Q5: How does the Scientific Data Fidelity Audit protect my empirical research?", expanded=False):
+        with st.expander("Q5: What should I do if Turnitin flags similarity in my draft?", expanded=False):
             st.markdown("""
-Our deterministic integrity engine cross-checks all $p$-values, bond distances ($\\text{\\AA}$), binding free energies ($\\text{kcal/mol}$ or $\\text{kJ/mol}$), active-site amino acid codes (e.g. `Cys166`), figure callouts, and sequential numbered citation ordering. If any value is inadvertently altered during paraphrasing, the system raises a detailed alert in the **🔬 Scientific Data & Figure Integrity Audit Card**.
+1. Go to **Tab 3 ("Plagiarism & Citations")**.
+2. Open the **"Similarity & Overlap Inspector"**.
+3. Upload your reference papers in the Left Panel and paste your draft in the Right Panel.
+4. The system will pinpoint the exact 4-word phrases that caused the flag and provide suggested academic citations (**APA**, **IEEE**, or **Harvard**) to ensure complete academic integrity.
 """)
 
 
